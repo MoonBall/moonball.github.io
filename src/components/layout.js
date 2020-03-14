@@ -58,7 +58,7 @@ const Layout = ({ location, title, children }) => {
     header = (
       <h1
         style={{
-          marginBottom: rhythm(1.5),
+          marginBottom: 0,
           marginTop: 0,
         }}
       >
@@ -100,12 +100,15 @@ const Layout = ({ location, title, children }) => {
         marginRight: `auto`,
         maxWidth: rhythm(24),
         padding: `${rhythm(1.5)} ${rhythm(3 / 4)}`,
+        height: '100vh',
+        display: 'flex',
+        flexFlow: 'column nowrap',
       }}
     >
       <header>{header}</header>
-      <main>{children}</main>
+      <main style={{ flex: '1' }}>{children}</main>
       <footer>
-        © {new Date().getFullYear()}, by MooBall
+        © {new Date().getFullYear()}, by MoonBall
       </footer>
     </div>
   )
