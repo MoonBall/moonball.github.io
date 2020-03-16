@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title><![CDATA[给筒筒挣猫粮]]></title><description><![CDATA[一个一线 WEB 开发工程师的思考]]></description><link>https://moonball.github.io</link><generator>GatsbyJS</generator><lastBuildDate>Mon, 16 Mar 2020 15:51:28 GMT</lastBuildDate><item><title><![CDATA[WEB 列表页筛选模块设计]]></title><description><![CDATA[将存放在 url 中的参数，直接以 url 作为数据源，而不是重新维护一份新的数据源。如果新创建一份数据源，存在以下的缺点： 修改方式有两种。一是修改 url，二是修改 state。 需要维护两个同步逻辑，保证 url 和 state…]]></description><link>https://moonball.github.io/web-system-list/</link><guid isPermaLink="false">https://moonball.github.io/web-system-list/</guid><pubDate>Sun, 15 Mar 2020 22:34:00 GMT</pubDate><content:encoded>&lt;p&gt;将存放在 url 中的参数，直接以 url 作为数据源，而不是重新维护一份新的数据源。如果新创建一份数据源，存在以下的缺点：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;修改方式有两种。一是修改 url，二是修改 state。&lt;/li&gt;
+&lt;li&gt;需要维护两个同步逻辑，保证 url 和 state 之间的数据同步。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;所以在列表页中，筛选项状态应该和 url 保持一致。&lt;/p&gt;
+&lt;h2&gt;期望效果&lt;/h2&gt;
+&lt;ol&gt;
+&lt;li&gt;当 url 不合法时，不自动进行重定向。在单页应用可以进行 replaceState。&lt;/li&gt;
+&lt;li&gt;筛选项、url、后端请求参数保持一致。所以不能实现筛选项默认值，只能根据不同的入口设置不同的 url。&lt;/li&gt;
+&lt;li&gt;更快发起后端请求，避免串行阻塞。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;下面讨论下主要的业务场景。&lt;/p&gt;
+&lt;h3&gt;简单场景&lt;/h3&gt;
+&lt;p&gt;假设页面 url 为：&lt;code class=&quot;language-text&quot;&gt;/list?tags[0]=1&amp;amp;q=ab&lt;/code&gt;，页面加载刷新后，需根据 url 生成 queryData。将 queryData 用于筛选组件和后台接口调用。由 url 生成 queryData 的过程需要进行数据转换，比如将 &lt;code class=&quot;language-text&quot;&gt;tags[0]=1&lt;/code&gt; 转换为 Number 型数组。&lt;/p&gt;
+&lt;h3&gt;处理不合法的参数&lt;/h3&gt;
+&lt;p&gt;假设用户在 url 中输入了错误的筛选值，这种场景如何处理呢？第一种方案是由组件和后端去兼容非法的筛选值，这是最简单高效方法，也是推荐的做法。第二种方案是前端将非法值都过滤掉，避免传给后端。第一种解决方案思路比较清晰，这里主要讨论方案二。&lt;/p&gt;
+&lt;p&gt;假设一个 Select 筛选项的 options 只有可选值 &lt;code class=&quot;language-text&quot;&gt;[1, 2]&lt;/code&gt;，而 url 传入值为 3。如果 options 是静态的，可以再 url -&gt; queryData 中就处理掉；否则只有等组件渲染完成确定 options 值后才能进行 url -&gt; queryData 的转换，并且每次 options 改变都要重新处理。&lt;/p&gt;
+&lt;p&gt;抽象上述思路可得到一种设计方案。因为 queryData 的值和筛选组件内部状态有关，所以 url 和 queryData 内容就不能一一对应，而是 &lt;code class=&quot;language-text&quot;&gt;url + component state = queryData&lt;/code&gt;。对于一个筛选组件而言，它应该知道如何判定一个筛选值是否合法。考虑给组件传入 &lt;code class=&quot;language-text&quot;&gt;onChangeFilterData&lt;/code&gt;，该方法区和 &lt;code class=&quot;language-text&quot;&gt;onChange&lt;/code&gt; 的区别是 &lt;code class=&quot;language-text&quot;&gt;onChange&lt;/code&gt; 会修改 url，而 &lt;code class=&quot;language-text&quot;&gt;onChangeFilterData&lt;/code&gt; 不修改 url（单页可以 &lt;code class=&quot;language-text&quot;&gt;history.replaceState&lt;/code&gt;），只修改 queryData。&lt;/p&gt;
+&lt;h3&gt;存在动态筛选项&lt;/h3&gt;
+&lt;p&gt;有些筛选项是动态生成的。这种业务场景下，主要考虑 url -&gt; queryData 的过程是否依赖于确定筛选项。如果将 parseUrl 实现在每一个筛选组件中，就需要先获取所有动态筛选项，再进行数据转换，数据转换完后才能进行数据请求；否则 url -&gt; queryData 这步没有任何依赖，可以立即发出后端请求，只需在筛选项渲染之前获取动态筛选项。&lt;/p&gt;
+&lt;h3&gt;筛选项存在局部状态&lt;/h3&gt;
+&lt;p&gt;常见的输入框会存在局部状态，会在用户按下 Enter 键或点击搜索后再开始执行搜索。在这种场景下，这些组件需要维护一个局部 state。当组件更新时，修改的是组件内部的 state。将 props.value 作为组件的 key，当 url 改变时，组件的状态将会被重置。&lt;/p&gt;
+&lt;h2&gt;总结&lt;/h2&gt;
+&lt;p&gt;推荐前后端都兼容 url 中不合法的 qs。前端进行 url -&gt; queryData 转换时，不要依赖 component state，转换操作最好只处理数据类型和数据格式。这样可以更快的发出查询接口，且数据流程非常简单。&lt;/p&gt;</content:encoded></item><item><title><![CDATA[TCP/IP 概述]]></title><description><![CDATA[TCP/IP 的含义 TCP/IP 和 OSI 的层次模型：
+
+TCP/IP 指的是在 TCP/IP 四层网络模型中涉及到的所有网络协议，也称为协议族（Internet Protocol Suite）。
+当我们单独地称 TCP 和 IP…]]></description><link>https://moonball.github.io/tcp-ip/</link><guid isPermaLink="false">https://moonball.github.io/tcp-ip/</guid><pubDate>Sat, 10 Feb 2018 17:03:30 GMT</pubDate><content:encoded>&lt;h2&gt;TCP/IP 的含义&lt;/h2&gt;
+&lt;p&gt;TCP/IP 和 OSI 的层次模型：
+&lt;span
+      class=&quot;gatsby-resp-image-wrapper&quot;
+      style=&quot;position: relative; display: block; margin-left: auto; margin-right: auto;  max-width: 590px;&quot;
+    &gt;
+      &lt;a
+    class=&quot;gatsby-resp-image-link&quot;
+    href=&quot;/static/4eed158476bfeb48d8f3e16e50c2a095/e996b/TCPIP-vs-OSI.png&quot;
+    style=&quot;display: block&quot;
+    target=&quot;_blank&quot;
+    rel=&quot;noopener&quot;
+  &gt;
+    &lt;span
+    class=&quot;gatsby-resp-image-background-image&quot;
+    style=&quot;padding-bottom: 75.04761904761904%; position: relative; bottom: 0; left: 0; background-image: url(&apos;data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAPCAYAAADkmO9VAAAACXBIWXMAABYlAAAWJQFJUiTwAAACLUlEQVQ4y32U6XLiQAyE8/4PluRHSIrLXmDBBzaE0/eN3asW5QXC1rpKxSBrPqlHGr90XYKuq9DUuVrX1QAa/a3rDE1TXH1i7aW8xomvafKbia9tK4lL8dKBmxqcTmckSYLlconp1MBqZSHPC/W3bQs+QRAgjhOkaSaxqcZnWY7zOVAfUFyBdVMjimIB19hsfKysFXzfl4wdwjDE5XJRYBRF6vv5VFUl4PQOWNdSyUk2hDBNE4vFArZtoygKHI/HJ2AQBrDk/W9RQxgtTX8AD4eDyIkEZKlsx3FEcq7+fwHXnqdQ7n0GilSeR1WWcFwbv2YzldxDemAcx/+RnD1LJtRdu7BdB9vtFqUkuJfMNaE0JuL5EnQ+s6HxIzAIQik7wXA0xNv7uzTGUhCDeyDXTGJJ017fXvHxMVAgC6E9ABnMTq2lQsexsdvvUFalVt4DueZZ8Vxd14XnewrkOD0BKYNjYxoGRuORHno/ez2Qa8Yy4edggM+vL20ck1DdXyBB+/1eGuFphWtvrV3e7XYPknmGrKTvLOX358yCrsAukw2NyjGMCSaTMcbjMYbDoYB9zd4DE6kikkZ8b7+laRvdQyP0qcusJM8zGeq5Dre/2eiVvO8yqzvJf86paU51Elz3Oq/Z/RxyI+8ob8Z8PpNKDQ1uW149zuHtLldVrbPId/RzzUS3wZYvRNuW4pALnoWyIdWvTFHEEiidzyP9GgG1SJPxYNyDheqrG36pMvwBWAV9Vltr3u8AAAAASUVORK5CYII=&apos;); background-size: cover; display: block;&quot;
+  &gt;&lt;/span&gt;
+  &lt;img
+        class=&quot;gatsby-resp-image-image&quot;
+        alt=&quot;TCP/IP 的分层和 OSI 七层模型对照图&quot;
+        title=&quot;TCP/IP 的分层和 OSI 七层模型对照图&quot;
+        src=&quot;/static/4eed158476bfeb48d8f3e16e50c2a095/fcda8/TCPIP-vs-OSI.png&quot;
+        srcset=&quot;/static/4eed158476bfeb48d8f3e16e50c2a095/12f09/TCPIP-vs-OSI.png 148w,
+/static/4eed158476bfeb48d8f3e16e50c2a095/e4a3f/TCPIP-vs-OSI.png 295w,
+/static/4eed158476bfeb48d8f3e16e50c2a095/fcda8/TCPIP-vs-OSI.png 590w,
+/static/4eed158476bfeb48d8f3e16e50c2a095/efc66/TCPIP-vs-OSI.png 885w,
+/static/4eed158476bfeb48d8f3e16e50c2a095/e996b/TCPIP-vs-OSI.png 1050w&quot;
+        sizes=&quot;(max-width: 590px) 100vw, 590px&quot;
+        style=&quot;width:100%;height:100%;margin:0;vertical-align:middle;position:absolute;top:0;left:0;&quot;
+        loading=&quot;lazy&quot;
+      /&gt;
+  &lt;/a&gt;
+    &lt;/span&gt;
+TCP/IP 指的是在 TCP/IP 四层网络模型中涉及到的所有网络协议，也称为协议族（Internet Protocol Suite）。
+当我们单独地称 TCP 和 IP 时，指的仅仅是两个具体的协议。&lt;/p&gt;
+&lt;h2&gt;互联网（internet）的含义&lt;/h2&gt;
+&lt;p&gt;先有 net，后有 internet。
+在80年代，大家开始把一台台计算机连接起来组成了 net。
+然后随着网络地不断发展，大家又发现需要把不同的网络（net）也连接起来，所以就出现了互联网（internet）。&lt;/p&gt;
+&lt;h2&gt;internet 和 Internet 的区别&lt;/h2&gt;
+&lt;p&gt;internet 意思是用一个共同的协议族把多个网络连接在一起。
+Internet 是指用 TCP/IP 把多个网络连接起来。
+Internet 是 internet 的一种。&lt;/p&gt;
+&lt;h2&gt;端对端（End-to-End）与逐跳（Hop-by-Hop）&lt;/h2&gt;
+&lt;p&gt;形成互联网之后，一台主机的数据就不能直接经过链路层抵达另一个网络的某台主机了。
+在数据在传输过程中，会经过很多的中间层来进行数据的转发。
+所以，当我们在讨论协议时，针对协议面向的目标可分为：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;端对端（End-to-End）。只有&lt;strong&gt;互相交流的主机&lt;/strong&gt;需要关心。&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;逐跳（Hop-by-Hop）。不仅&lt;strong&gt;互相交流的主机&lt;/strong&gt;需要关心，&lt;strong&gt;网络途径的中间者&lt;/strong&gt;也需要关心。&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;这两个概念不只是针对整个协议，对于协议细节（比如 HTTP 中的某个 Header）也经常使用它们。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2&gt;路由器和网桥&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;路由器是在网络层上对网络进行互连，网络层提供了更多的网络如何分段的信息，使网管更利于管理路由。&lt;/li&gt;
+&lt;li&gt;网桥是在链路层上对网络进行互联，根据 MAC 地址来过滤和转发帧。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;环回接口（Loopback Interface）&lt;/h2&gt;
+&lt;p&gt;环回接口的目的是：支持同一台主机上的客户程序和服务器程序通过 TCP/IP 进行通信。
+大多数系统把127.0.0.1分配给这个接口，并命名为 localhost。
+一个传给环回接口的 IP 数据报不能在任何网络中出现。
+环回接口在链路层实现，作为一个网络接口，它的功能仅仅是将收到的 IP 数据包再转发到本地机器。
+下图展示了：环回接口在整个网络层和链路层的交互中所起的作用。
+&lt;span
+      class=&quot;gatsby-resp-image-wrapper&quot;
+      style=&quot;position: relative; display: block; margin-left: auto; margin-right: auto;  max-width: 590px;&quot;
+    &gt;
+      &lt;a
+    class=&quot;gatsby-resp-image-link&quot;
+    href=&quot;/static/47e5bb465366af8561cf84f895d1b56e/d698c/%E7%8E%AF%E5%9B%9E%E6%8E%A5%E5%8F%A3%E5%A4%84%E7%90%86IP%E6%95%B0%E6%8D%AE%E6%8A%A5%E7%9A%84%E8%BF%87%E7%A8%8B.png&quot;
+    style=&quot;display: block&quot;
+    target=&quot;_blank&quot;
+    rel=&quot;noopener&quot;
+  &gt;
+    &lt;span
+    class=&quot;gatsby-resp-image-background-image&quot;
+    style=&quot;padding-bottom: 72.15601300108344%; position: relative; bottom: 0; left: 0; background-image: url(&apos;data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAOCAYAAAAvxDzwAAAACXBIWXMAABYlAAAWJQFJUiTwAAABt0lEQVQ4y4VTaY+CUAzk//8nvxiPqIlr4hEvULwQ7wPFA519000JiMk2aXgHbWfaeRaMvd9v6Jf+fD7l+3q9Ytfzy+WCbzG6t5KXDPCXS4xGIzwej5RHUYTj8Qjf93G9Xv9PqN7tdlGtViXBp3mLBYrFIs7ncyqZGtdW8pAIiYK0GMTv7XZDEASy32w2mEwmOBwOqUJfEWp/SOd+v+N0OmG/34vzTBHzXxZQAPRkUkszM7Ber6PVbmO9Xguy7XaLVquFQqGAUrmMtrlbmh47joNms4mLKcSEHFqKMu1kqNrDIVzXxXg8lgJBcEav10O1UkHFeKfTEbquO0aj0ZCiTEj0MWVd7HY7DPp92LYtFLnXuzAMxdWi6CXJ/tZRdii6oTy0J0TIIVBCtVoNuVzOtORH+kyKLEojYraCw8zoUI0BHMpsNhNqpOuYxAzWfrE4jX2m1BSI9SlQpUEEfdMCRcbJ8l7bMZ1ORQ0Zyt+eEX9SaXBNFJ7nCX3HsVEy4s7n8xgMBvFQUgm/0aaQ9Q0zOdGGZhCkulqtpBXsM4eTBJRBSDp8r6TEoVCTuqek5vN5jJj3SWHTfgH2nDXhHRkkZAAAAABJRU5ErkJggg==&apos;); background-size: cover; display: block;&quot;
+  &gt;&lt;/span&gt;
+  &lt;img
+        class=&quot;gatsby-resp-image-image&quot;
+        alt=&quot;环回接口处理IP数据报的过程&quot;
+        title=&quot;环回接口处理IP数据报的过程&quot;
+        src=&quot;/static/47e5bb465366af8561cf84f895d1b56e/fcda8/%E7%8E%AF%E5%9B%9E%E6%8E%A5%E5%8F%A3%E5%A4%84%E7%90%86IP%E6%95%B0%E6%8D%AE%E6%8A%A5%E7%9A%84%E8%BF%87%E7%A8%8B.png&quot;
+        srcset=&quot;/static/47e5bb465366af8561cf84f895d1b56e/12f09/%E7%8E%AF%E5%9B%9E%E6%8E%A5%E5%8F%A3%E5%A4%84%E7%90%86IP%E6%95%B0%E6%8D%AE%E6%8A%A5%E7%9A%84%E8%BF%87%E7%A8%8B.png 148w,
+/static/47e5bb465366af8561cf84f895d1b56e/e4a3f/%E7%8E%AF%E5%9B%9E%E6%8E%A5%E5%8F%A3%E5%A4%84%E7%90%86IP%E6%95%B0%E6%8D%AE%E6%8A%A5%E7%9A%84%E8%BF%87%E7%A8%8B.png 295w,
+/static/47e5bb465366af8561cf84f895d1b56e/fcda8/%E7%8E%AF%E5%9B%9E%E6%8E%A5%E5%8F%A3%E5%A4%84%E7%90%86IP%E6%95%B0%E6%8D%AE%E6%8A%A5%E7%9A%84%E8%BF%87%E7%A8%8B.png 590w,
+/static/47e5bb465366af8561cf84f895d1b56e/efc66/%E7%8E%AF%E5%9B%9E%E6%8E%A5%E5%8F%A3%E5%A4%84%E7%90%86IP%E6%95%B0%E6%8D%AE%E6%8A%A5%E7%9A%84%E8%BF%87%E7%A8%8B.png 885w,
+/static/47e5bb465366af8561cf84f895d1b56e/c83ae/%E7%8E%AF%E5%9B%9E%E6%8E%A5%E5%8F%A3%E5%A4%84%E7%90%86IP%E6%95%B0%E6%8D%AE%E6%8A%A5%E7%9A%84%E8%BF%87%E7%A8%8B.png 1180w,
+/static/47e5bb465366af8561cf84f895d1b56e/d698c/%E7%8E%AF%E5%9B%9E%E6%8E%A5%E5%8F%A3%E5%A4%84%E7%90%86IP%E6%95%B0%E6%8D%AE%E6%8A%A5%E7%9A%84%E8%BF%87%E7%A8%8B.png 1846w&quot;
+        sizes=&quot;(max-width: 590px) 100vw, 590px&quot;
+        style=&quot;width:100%;height:100%;margin:0;vertical-align:middle;position:absolute;top:0;left:0;&quot;
+        loading=&quot;lazy&quot;
+      /&gt;
+  &lt;/a&gt;
+    &lt;/span&gt;&lt;/p&gt;
+&lt;h2&gt;网络接口的选择&lt;/h2&gt;
+&lt;p&gt;发送端通过路由表根据目的 IP 地址选择网络接口。
+接收端找到本机与目的 IP 地址相匹配的网络接口。&lt;/p&gt;</content:encoded></item></channel></rss>
