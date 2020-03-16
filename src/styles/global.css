@@ -24,3 +24,12 @@ blockquote {
   opacity: 0.8;
   color: inherit;
 }
+
+:not(pre) > code[class*='language-'] {
+  border-radius: 0.3em;
+  background: var(--inlineCode-bg);
+  color: var(--inlineCode-text);
+  padding: 0.15em 0.2em 0.05em;
+  white-space: normal;
+  text-shadow: none;
+}
