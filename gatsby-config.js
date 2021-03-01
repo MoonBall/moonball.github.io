@@ -5,7 +5,7 @@ module.exports = {
       name: `MoonBall`,
       summary: ``,
     },
-    description: `一个一线 WEB 开发工程师的思考`,
+    description: `记录兴趣和思考`,
     siteUrl: `https://moonball.github.io/`,
     social: {
       twitter: '',
