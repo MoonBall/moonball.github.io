@@ -42,7 +42,7 @@ function CompWithFetch() {
 }
 ```
 
-如果经常写这样的代码，那么肯定会想到自己封装一个 React Hook，并将请求函数作为该 Hook 的参数。
+如果经常写这样的代码，那么肯定会想到自己封装一个 React Hook，该 Hook 以请求函数作为参数。
 
 ```js
 function useFetch(fetcher) {
@@ -58,9 +58,10 @@ function useFetch(fetcher) {
     }
   }, [fetcher])
 
+  // fetcher 改变就再次获取数据
   useEffect(() => {
     fetch()
-  }, [])
+  }, [fetch])
 
   return {
     data,
@@ -70,9 +71,9 @@ function useFetch(fetcher) {
 }
 ```
 
-这样就完成了一个非常迷你的 useSWR 了。
+这样就完成了一个非常迷你的 useSWR 了。调用方需通过 useCallback 生成稳定的 fetcher 引用值，这点是为了在请求带有参数时，参数改变后 useFetch 将重新发起请求。暴露给调用方的 fetch 函数，可以应对主动刷新的场景，比如页面上的刷新按钮。
 
-尽管 `useFetch` 可以在一部分场景中复用，但是与 useSWR 相比，它的抽象程度还不够。接下来我们一起看看 useSWR 内部抽象了多少通用功能，为什么我选择使用它？
+尽管 `useFetch` 可以在一部分场景中复用，但是与 useSWR 相比，它的抽象程度还不够。比如：要求调用方使用 useCallback 来生成 fetcher 就是模板代码，接下来我们一起看看 useSWR 内部抽象了多少通用功能，为什么我选择使用它？
 
 # 为什么使用 useSWR
 
