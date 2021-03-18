@@ -73,19 +73,31 @@ function useFetch(fetcher) {
 
 这样就完成了一个非常迷你的 useSWR 了。调用方需通过 useCallback 生成稳定的 fetcher 引用值，这点是为了在请求带有参数时，参数改变后 useFetch 将重新发起请求。暴露给调用方的 fetch 函数，可以应对主动刷新的场景，比如页面上的刷新按钮。
 
-尽管 `useFetch` 可以在一部分场景中复用，但是与 useSWR 相比，它的抽象程度还不够。比如：要求调用方使用 useCallback 来生成 fetcher 就是模板代码，接下来我们一起看看 useSWR 内部抽象了多少通用功能，为什么我选择使用它？
+尽管 `useFetch` 可以在一部分场景中复用，但是与 useSWR 相比，它的抽象程度还不够，比如：要求调用方使用 useCallback 来生成 fetcher 就是模板代码等等。
+
+进入正题，接下来我们一起看看 useSWR 内部抽象了多少通用功能，为什么选择使用它？
 
 # 为什么使用 useSWR
 
 ## 1、实现了错误状态和加载状态
 
-useSWR 的返回值不仅有请求结果 data， 还有错误状态 error 和加载状态 isValidating。如果你曾经为每个请求都写过一次 `try catch` 和`setState(true)`，那么你一定能深深地体会到 useSWR 带来的简洁。
+useSWR 不仅和我们实现的 `useFetch` 一样好用，它的返回值还有错误状态 error 和加载状态 isValidating。如果你曾经为每个请求都写过一次 `try catch` 和`setState(true)`，那么你一定能深深地体会到 useSWR 带来的简洁。
+
+```js
+// 使用 useSWR 实现带有数据请求的 React 组件，和 useFetch 一样简洁。
+function CompWithFetch() {
+  // key 可了解为某个请求的 ID，用于全局缓存该请求，可先不管
+  const { data, error, isValidating } = useSWR(key, fetcher);
+
+  return <div>{data}</div>
+}
+```
 
 除了简洁之外，useSWR 还对 data/error/isValidating 做了优化，避免引起不必要的渲染。比如业务场景只关心请求的结果，当请求结果中数据不存在时，就在页面上展示占位符 -。由于该场景并不关心加载状态和错误状态，那么 useSWR 就只会在 data 发生改变时才触发组件重新渲染。该优化通过 `Object.defineProperties` 实现，可参考[源码](https://github.com/vercel/swr/blob/master/src/use-swr.ts#L753)。
 
 ## 2. 解决了请求时序问题
 
-请求的时序问题是指，用户操作
+请求的时序问题是指，用户操作页面后发起了查询请求 reqA 和 reqB，
 
 搜索场景中的请求都需要解决时序问题。
 
