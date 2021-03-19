@@ -81,13 +81,13 @@ function useFetch(fetcher) {
 
 ## 1、实现了错误状态和加载状态
 
-useSWR 不仅和我们实现的 `useFetch` 一样好用，它的返回值还有错误状态 error 和加载状态 isValidating。如果你曾经为每个请求都写过一次 `try catch` 和`setState(true)`，那么你一定能深深地体会到 useSWR 带来的简洁。
+useSWR 不仅和我们实现的 `useFetch` 一样好用，它的返回值还有错误状态 error 和加载状态 isValidating。如果你曾经为每个请求都写过一次 `try catch` 和`setState(true)`，那么用上它后代码将简洁不少。
 
 ```js
 // 使用 useSWR 实现带有数据请求的 React 组件，和 useFetch 一样简洁。
 function CompWithFetch() {
   // key 可了解为某个请求的 ID，用于全局缓存该请求，可先不管
-  const { data, error, isValidating } = useSWR(key, fetcher);
+  const { data, error, isValidating } = useSWR(key, fetcher)
 
   return <div>{data}</div>
 }
@@ -97,11 +97,48 @@ function CompWithFetch() {
 
 ## 2. 解决了请求时序问题
 
-请求的时序问题是指，用户操作页面后发起了查询请求 reqA 和 reqB，
+请求的时序问题是指用户操作页面两次，先后发出了请求 1 和请求 2，用户期望页面展示请求 2 的数据，但页面却展示了请求 1 的数据。
+![时序问题](./imgs/时序问题.png)
 
-搜索场景中的请求都需要解决时序问题。
+为了保证程序的正确性，在搜索查询的页面和模块中，都需要解决时序问题。以往解决时序最简单的方法是使用一个递增的整数，每次请求结束都会用该整数判断当前请求是否是最后一个请求。如果是最后一个请求才使用它的响应结果，否则就忽略它。
+
+```js
+// 实现最简单的时序问题处理
+```
+
+使用 useSWR 后，我们就无需关心时序问题了，因为它内部只会使用最后一次请求的数据。
 
 ## 3. 天然的全局状态方便多组件复用
+
+数据请求我们一般都会将其写在组件内部，因为当时只有一个组件会使用到该请求，同时也符合软件设计高内聚的思想。但如果多个组件需要共用该请求的数据，通常我们会将数据放到 Context 或 Redux 中。在实现该功能时，不仅要将数据移动到上层，还要修改更新数据的代码，繁琐且容易出错。
+
+另一种解决办法是在需要该请求数据的多个组件中，都调用我们实现的 `useFetch` Hook。但是该方法有两个缺点。1.每个组件各自维护了一份数据，如果前端需要更新数据，那么两份数据如何同步就会变得很困难。2.每个组件都会发起一次请求，且不说对同一个请求发出多次多么糟糕，而且也可能存在两次请求的结果存在数据不一致的情况。由于这些缺点，所以还是使用全局数据管理更靠谱些。
+
+useSWR 内部便是通过全局数据实现，如果调用 `useSWR(key, fetcher)` 的 key 一样，它们就会使用同一份数据。如果我们使用 useSWR 在组件 A 中使用了请求 `/api/data` 的数据，代码如下。
+
+```js
+function CompA() {
+  const { data } = useSWR("/api/data", async () => {
+    await new Promise(r => setTimeout(r, 500))
+    return "MoonBall"
+  })
+  return <div>组件A：{data || "-"}</div>
+}
+```
+
+随后组件 B 也需要使用该请求。那么我们复制一下就实现了。
+
+```js
+function CompB() {
+  const { data } = useSWR("/api/data", async () => {
+    await new Promise(r => setTimeout(r, 500))
+    return "MoonBall"
+  })
+  return <div>组件B：{data || "-"}</div>
+}
+```
+
+`useSWR` 会尽量只发出一次请求，它会在一个请求
 
 ## 4. 轻松实现数据预加载
 
@@ -138,3 +175,5 @@ function CompWithFetch() {
 ## 只能在 React 组件中拿到最新的请求结果
 
 全局状态
+
+## 未提供请求中断的 API
