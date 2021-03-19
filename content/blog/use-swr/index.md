@@ -117,6 +117,7 @@ function CompWithFetch() {
 useSWR 内部便是通过全局数据实现，如果调用 `useSWR(key, fetcher)` 的 key 一样，它们就会使用同一份数据。如果我们使用 useSWR 在组件 A 中使用了请求 `/api/data` 的数据，代码如下。
 
 ```js
+// 在组件 A 中获取请求 `/api/data` 的数据
 function CompA() {
   const { data } = useSWR("/api/data", async () => {
     await new Promise(r => setTimeout(r, 500))
@@ -126,9 +127,10 @@ function CompA() {
 }
 ```
 
-随后组件 B 也需要使用该请求。那么我们复制一下就实现了。
+随后组件 B 也需要使用该请求。那么我们先复制一下代码看看效果。
 
 ```js
+// 在组件 B 中也获取请求 `/api/data` 的数据
 function CompB() {
   const { data } = useSWR("/api/data", async () => {
     await new Promise(r => setTimeout(r, 500))
@@ -138,7 +140,32 @@ function CompB() {
 }
 ```
 
-`useSWR` 会尽量只发出一次请求，它会在一个请求
+只要 CompA 和 CompB 的挂载时间之差小于 [dedupingInterval（默认值是 2000ms）](https://swr.vercel.app/zh-CN/docs/options) ，useSWR 就只会发出一次请求。如果页面是同时展示组件A 和组件B，那么基本上不会发出两次请求，毕竟2秒都不够用，页面也太卡了，用户也该喷了。如果页面先展示组件A，用户点击按钮后才展示组件B，组件A和B的挂载时间超过了 2s，那么组件B挂载时重新获取数据也是合理的，毕竟上次获取的请求数据可能已经是脏数据了（因为服务端更新了数据）。当然某些场景中，我们就是不想 B 重新发起请求，因为如果数据有更新了，就会导致组件A重新 Render，进一步导致莫名其妙的 bug 或性能问题。这时可以给组件 B 传 `revalidateOnMount: false`，让组件 B 在挂载时不会发起请求。
+
+随后 接下来我们再简化下代码，将请求相关的公共代码提炼为函数 `useData`，然后再组件A和组件B中调用 `useData` 即可，非常简洁。
+
+```js
+function useData(revalidateOnMount) {
+  return useSWR("/api/data", async () => {
+    await new Promise(r => setTimeout(r, 500))
+    return "MoonBall"
+  }, {
+    revalidateOnMount
+  })
+}
+
+function CompA() {
+  const { data } = useData();
+  return <div>组件A：{data || "-"}</div>
+}
+
+function CompB() {
+  // 根据需求，可以传参 false，来避免组件 B 在挂载时发起请求
+  const { data } = useData();
+  return <div>组件B：{data || "-"}</div>
+}
+```
+
 
 ## 4. 轻松实现数据预加载
 
@@ -177,3 +204,12 @@ function CompB() {
 全局状态
 
 ## 未提供请求中断的 API
+
+## 配置基于请求还是基于组件，傻傻分不清
+
+
+# FAQ
+
+## useSWR 会导致内存泄露吗？
+
+
