@@ -1,5 +1,9 @@
 # 聊聊 useSWR，关于全局服务端数据管理和声明式请求
 
+> **前言**
+>
+> [useSWR](https://github.com/vercel/swr) 是 Vercel 团队维护的 React 数据请求管理库，Vercel 同时也是 Next.js 的创始团队。有如此优秀的团队做支持，相信 useSWR 的思想和源码一定会给我们带来启发。
+
 在介绍 useSWR 之前，我们先看一个最简单的带有数据请求的 React 组件。
 
 ```js
@@ -51,8 +55,11 @@ function useFetch(fetcher) {
     fetch,
   }
 }
+```
 
-// 调用方代码
+我们再看看调用方代码，加深对 `useFetch` 的理解。
+
+```js
 function CompWithUseFetch() {
   const [search, setSearch] = useState("")
   const fetcher = useCallback(() => {
@@ -72,25 +79,30 @@ function CompWithUseFetch() {
 }
 ```
 
-这样就完成了一个非常迷你的 useSWR 了。调用方需通过 useCallback 生成稳定的 fetcher 函数引用值，这点是为了在请求带有参数时，如果参数改变了就重新发起请求。暴露给调用方的 fetch 函数，可以应对主动刷新的场景，比如页面上的刷新按钮。
+如 `useFetch` 所示，我们就完成了一个非常迷你的 useSWR 了。调用方需通过 useCallback 生成稳定的 fetcher 函数引用值，这点是为了在请求带有参数时，如果参数改变了就重新发起请求。暴露给调用方的 fetch 函数，可以应对主动刷新的场景，比如页面上的刷新按钮。
 
-通过 `useFetch` 我们已经了解 useSWR 的主要功能了。那我们进入正题吧，本文分为两个部分，第一部分介绍 useSWR 中的两大思想「全局服务端数据管理」和「声明式数据请求」，第二部分是使用 useSWR 后的总结，包括优缺点和最佳实践。
+通过 `useFetch` 我们已经了解了 useSWR 的主要功能。接着我们进入正题吧，本文分为两个部分，第一部分介绍 useSWR 中的两大思想「全局服务端数据管理」和「声明式数据请求」，第二部分是使用 useSWR 后的总结，包括优缺点和最佳实践。
 
 # 全局服务端数据管理
 
-useSWR 的 API 形式为 `useSWR(key, fetcher, config)`，它将 key 作为请求的 ID。如果多个组件需要共用一个请求，那它们就使用相同的 key 来调用 useSWR。useSWR 通过一个[全局 Map](https://github.com/vercel/swr/blob/fa676db47512b07b539e8b933932d714a2e5d3b3/src/config.ts#L7) 来实现 key 和请求的关系，多次调用 useSWR 时，相同的 key 在 useSWR 中只存在一个请求结果。因此，如果组件对某 key 对应的请求响应进行了修改，那么使用该 key 的其他组件都会收到最新的数据。这种天然的全局服务端数据管理方式，不仅保证了页面数据的一致性，而且可以非常简单地实现数据共享，这点将在[“天然的全局状态方便多组件复用”]()中被详细介绍。
+useSWR 的 API 形式为 `useSWR(key, fetcher, config)`，它将 key 作为请求的 ID。如果多个组件需要共用一个请求，那它们就使用相同的 key 来调用 useSWR。useSWR 内部通过一个[全局 Map](https://github.com/vercel/swr/blob/fa676db47512b07b539e8b933932d714a2e5d3b3/src/config.ts#L7) 来实现 key 和请求的关系，多次调用 useSWR 时，相同的 key 在 useSWR 中只存在一个请求结果。因此，再结合发布者订阅者模式，如果组件对某 key 对应的请求响应进行了修改，那么使用该 key 的其他组件都会收到最新的数据。这种天然的全局服务端数据管理方式，不仅保证了页面数据的一致性，而且可以非常简单地实现数据共享，这点将在[“天然的全局状态方便多组件复用”]()中被详细介绍。
 
 # 声明式数据请求
 
 我们知道 React 是声明式 UI 库，开发者通过编写组件返回的 JSX 告诉 React 页面应该是什么样子的，然后 React 就会将页面更新为开发者想要的模样。因此开发者就只需关心如何写好 JSX 来描述页面，剩下的就交给 React 去优化吧。
 
-useSWR 也是如此，它的 API 形式为 `useSWR(key, fetcher, config)`。如果我们只看前两个参数，我们通过 key 告诉 useSWR 我们需要什么请求，只要 key 改变了，我们便希望得到的是与 key 相对应的请求结果。这就是声明式数据请求，我们无需关心如何发起请求，[请求的时序问题]()，只需要告诉 useSWR 我们需要什么数据即可。我们前面实现的 useFetch 也是声明式数据请求，useSWR 中 key 就可以理解为生成 fetcher 时 useCallback 的依赖。
+useSWR 也是如此，它的 API 形式为 `useSWR(key, fetcher, config)`。如果我们只看前两个参数，我们通过 key 告诉 useSWR 我们需要什么请求，只要 key 改变了，我们便希望得到的是与 key 相对应的请求结果。这就是声明式数据请求，我们无需关心如何发起请求，[请求的时序问题]()，只需要告诉 useSWR 我们需要的请求即可。我们前面实现的 useFetch 也是声明式数据请求，useSWR 的 key 就可以理解为生成 fetcher 时 useCallback 的依赖。
 
 useSWR 的参数 key 不仅可以是字符串，还可以是数组或函数。如果 key 是函数，则会将该函数的执行结果作为 key。如果 key 是数组，则会一次浅比较数组每项，如果有某项发生改变，则表示需要重新发起请求。
 
+> **扩展知识**
+>
+> useSWR 中 key 为数组时，数组中可以传对象，那 SWR 如何保证引用相等的对象所对应的 key 也相等呢？
+> 参考[源码](https://github.com/vercel/swr/blob/fa676db47512b07b539e8b933932d714a2e5d3b3/src/libs/hash.ts#L33)，useSWR 使用 WeakMap 将对象映射为整数。如果对象引用相等，则映射后的整数就一样，从而保证了 key 相等。
+
 ## 条件请求
 
-通过 `key` 值，可以告诉 useSWR 需要的请求，那我们如何告诉 useSWR 不需要请求的场景呢？ 一般来说，程序中不需要什么，不调用就完了，但是 React Hook 不一样，它不能放在条件语句中，所以需要 useSWR 内置支持。
+通过 `key` 值，可以告诉 useSWR 我们需要的请求，那如何告诉 useSWR 不需要请求的场景呢？ 一般来说，程序中不需要什么，不调用就完了，但是 React Hook 不一样，它不能放在条件语句中，所以需要 useSWR 内置支持。
 
 useSWR 通过 key 值是否为 null，来标识调用方是否需要请求。或者当 key 是一个函数时，函数执行时报错或返回 null 也可以。当不需要请求时，useSWR 的返回值始终是 `{ data: undefined, error: undefined, isValidating: false }`。
 
@@ -114,9 +126,9 @@ function Comp() {
 }
 ```
 
-但这种方式有个缺点，它违背了 key 和请求之间的对应关系。如果后续还有组件要使用 /api/data 接口，这些新组件使用的 key 是 `'/api/data'`，那么相同的请求的 key 值却不同的。对 useSWR 而言，会认为它们是两个请求。就会破坏该请求的全局共享，导致页面数据不一致的结果。
+但这种方式有个缺点，它违背了 key 和请求之间的对应关系。如果后续还有组件要使用 /api/data 接口，这些新组件使用的 key 是 `'/api/data'`，就导致相同的请求对应着不同的 key。对 useSWR 而言，会认为它们是两个请求，便破坏了该请求的全局共享，导致页面数据不一致的结果。
 
-第二种方式是通过命令式的方式发起请求。因为点刷新按钮时界面上所有的筛选参数都没有改变，所以传给 useSWR 的 key 就不会改变，那么声明式的数据请求方式就不会发起新的请求。useSWR 就考虑到这种场景，会返回的 `revalidate()` 方法，该方法就是通过命令式方式重新发起请求。
+第二种方式是通过命令式的方式发起请求。因为点刷新按钮时界面上所有的筛选参数都没有改变，所以传给 useSWR 的 key 就不会改变，那么声明式的数据请求方式就不会发起新的请求。useSWR 就考虑到这种场景，它返回的 `revalidate()` 方法，就是通过命令式方式重新发起请求。
 
 ```js
 function Comp() {
@@ -137,9 +149,9 @@ function Comp() {
 
 想想 React 是怎么做的呢？React 通过命令式的 setState() 来更新界面。所以 useSWR 也暴露了一个命令式的修改方式 [`mutate()`](https://useSWR.vercel.app/docs/mutation)。
 
-mutate 包括两个参数，第一个是新的数据（或是 Promise 对象），或者一个函数（函数调用实参是 key 对应的当前值）。第二个参数表示修改完成后是否应该重新发起请求，因为前端更新后的数据和后端的数据不一致，应以后端数据为准。
+mutate 包括两个参数，第一个是新的数据（或是 Promise 对象），或者一个函数（函数调用实参是该请求的当前值）。第二个参数表示修改完成后是否应该重新发起请求，因为前端更新后的数据可能和后端的数据不一致，应以后端数据为准。
 
-swr 还提供了全局的 `mutate()` 方法，它的第一个参数是 key，表示想要修改的请求。`useSWR()` 返回的 `mutate()` 就是全局 mutate 方法绑定了 key 后的版本。
+SWR 还提供了全局的 `mutate()` 方法，它的第一个参数是 key，表示想要修改的请求。`useSWR()` 返回的 `mutate()` 就是全局 mutate 方法绑定了 key 后的版本。
 
 > **拓展知识**
 >
@@ -147,9 +159,11 @@ swr 还提供了全局的 `mutate()` 方法，它的第一个参数是 key，表
 
 # useSWR 的优势
 
+在介绍完 useSWR 的设计思想和基本使用后，接下来我们看看 useSWR 的优势，使用了它后解决了哪些问题。
+
 ## 1、实现了错误状态和加载状态
 
-useSWR 不仅和我们实现的 `useFetch` 一样好用，它的返回值还有错误状态 error 和加载状态 isValidating。如果你曾经为每个请求都写过一次 `try catch` 和`setLoading(true)`，那么用上 useSWR 后代码将简洁不少。
+useSWR 不仅和我们实现的 `useFetch` 一样好用，它的返回值还包括错误状态 error 和加载状态 isValidating。如果你曾经为每个请求都写过一次 `try catch` 和 `setLoading(true)`，那么用上 useSWR 后代码绝对会简洁不少。
 
 ```js
 // 使用 useSWR 实现带有数据请求的 React 组件，和 useFetch 一样简洁。
@@ -160,7 +174,20 @@ function CompWithSWR() {
 }
 ```
 
-除了简洁之外，useSWR 还对 data/error/isValidating 做了优化，避免引起不必要的渲染。比如业务场景只关心请求的结果，当请求结果中数据不存在时，就在页面上展示占位符短横线。由于该场景并不关心加载状态和错误状态，那么 useSWR 就只会在 data 发生改变时才触发组件重新渲染。该优化通过 `Object.defineProperties` 实现，可参考[源码](https://github.com/vercel/useSWR/blob/master/src/use-useSWR.ts#L753)。
+除了简洁之外，useSWR 还对 data/error/isValidating 做了优化，避免引起不必要的渲染。比如业务场景只关心请求的结果，当请求结果中数据不存在时，就在页面上展示占位符短横线。由于该场景并不关心加载状态和错误状态，那么 useSWR 就只会在 data 发生改变时才触发组件重新渲染。该优化通过 `Object.defineProperties` 实现依赖收集，可参考[源码](https://github.com/vercel/useSWR/blob/master/src/use-useSWR.ts#L753)。
+
+值得一提的是，当再次发起请求时，useSWR 会保留上次的请求结果。如果业务场景要求加载时重置 data/error，可在调用侧根据 isValidating 的值进行调整。
+
+```js
+// 发起请求时重置 data/error
+function CompWithSWR() {
+  const { data, error, isValidating } = useSWR(key, fetcher)
+  const businessData = isValidating ? undefined : data
+  const businessError = isValidating ? undefined : data
+
+  return <div>{businessData || "-"}</div>
+}
+```
 
 ## 2. 解决了请求时序问题
 
@@ -240,9 +267,9 @@ function CompB() {
 }
 ```
 
-只要 CompA 和 CompB 的挂载时间之差小于 [dedupingInterval（默认值是 2000ms）](https://useSWR.vercel.app/zh-CN/docs/options) ，useSWR 就只会发出一次请求。如果页面是同时展示组件 A 和组件 B，那么基本上不会发出两次请求，毕竟 2 秒都不够用，那页面也太卡了，用户也该喷了。如果页面先展示组件 A，用户点击按钮后才展示组件 B，组件 A 和 B 的挂载时间超过了 2s，那么组件 B 挂载时重新获取数据也是合理的，毕竟上次获取的请求数据可能已经是脏数据了（因为可能服务端更新了数据）。当然存在某些特殊场景，我们就是不想 B 重新发起请求，比如当数据有更新了，就会导致组件 A 重新 Render，进一步导致莫名其妙的 bug 或性能问题。这时可以给组件 B 传 `revalidateOnMount: false`，让组件 B 在挂载时不会发起请求。
+你可能会觉得这样的写法也要发出两次请求，但实际上只要 CompA 和 CompB 的挂载时间之差小于 [dedupingInterval（默认值是 2000ms）](https://useSWR.vercel.app/zh-CN/docs/options) ，useSWR 就只会发出一次请求。目前 useSWR 是在 [useLayoutEffect](https://github.com/vercel/swr/blob/fa676db47512b07b539e8b933932d714a2e5d3b3/src/use-swr.ts#L538) 钩子回调中尝试发起请求的。如果页面是同时展示组件 A 和组件 B，那么基本上就不会发出两次请求，因为如果「执行组件 A 钩子回调」和「执行组件 B 钩子回调」之间时间超过 2s，那页面就太卡了，用户也该喷了。如果页面先展示组件 A，用户点击按钮后才展示组件 B，组件 A 和 B 的挂载时间超过了 2s，那么组件 B 挂载时重新获取数据也是合理的，毕竟上次获取的请求数据可能已经是脏数据了（毕竟服务端随时都可能更新数据）。当然也存在某些特殊场景，我们就是不想 B 重新发起请求，比如当数据更新后，就会导致组件 A 重新执行 Render 过程，进一步导致莫名其妙的 bug 或性能问题。这时可以给组件 B 传 `revalidateOnMount: false`，让组件 B 在挂载时不会发起请求。
 
-随后 接下来我们再简化下代码，将请求相关的公共代码提炼为函数 `useData`，然后在组件 A 和组件 B 中调用 `useData`。
+接下来我们再简化下代码，将请求相关的公共代码提炼为函数 `useData`，然后在组件 A 和组件 B 中调用 `useData` 就完美了。
 
 ```js
 function useData(revalidateOnMount) {
@@ -272,7 +299,7 @@ function CompB() {
 
 ## 4. 轻松实现数据预加载
 
-因为用户 Hover 到某按钮时，就极可能会点击该按钮，所以常见的数据预加载场景就是在用户 Hover 在某按钮时，预加载点击按钮后需要的数据，以便用户点击按钮后能立即看到结果，而不是看到“数据加载中...”，提升用户体验。
+因为用户 Hover 到某按钮时，就极可能会点击该按钮，所以常见的数据预加载场景就是在用户 Hover 到某按钮时，预加载点击按钮后需要的数据，以便用户点击按钮后能立即看到结果，而不是看到“数据加载中...”，提升用户体验。
 
 我们先梳理下实现数据预加载的方式有哪些？
 
@@ -281,9 +308,16 @@ function CompB() {
 3. 通过接口缓存实现，比如将接口响应缓存 1s，1s 内发起点击就会立即使用缓存。
 4. 等等...
 
-前两种方式都伴随着不少的开发量。第三种方式简单，但容易失效，比如：用户 Hover 到按钮上等了 2s 在点击。使用 useSWR 的预加载的方式如下所示。
+前两种方式都伴随着不少的开发量。第三种方式简单，但容易失效，比如：用户 Hover 到按钮上等了 2s 在点击。
+
+使用 useSWR 实现预加载的方式只需三步。
+
+1. 给请求所在 Hook 增加 revalidateOnMount 参数。
+2. 在实现预加载的组件中，引用该 Hook 并传参 revalidateOnMount 为 false。
+3. 给按钮增加 onMouseEnter 事件处理函数，在函数中调用 revalidate()。
 
 ```js
+// 使用 useSWR 实现预加载
 function useData(revalidateOnMount) {
   return useSWR(
     "/api/data",
@@ -327,11 +361,11 @@ function CompB() {
 1. 在组件 A 中调用 useData 时传参是 false，因为不希望挂载组件 A 时产生不必要的请求，避免导致页面需要的请求延后。
 2. 展示组件 B 时，组件 A 中已经发起了预加载请求，按理来说我们应该在组件 B 中调用 useData 时也传参 false。但是我们没有这样做，我们从预加载请求的状态来分析下原因。1.) 如果预加载的请求还在进行中，且不超过 dedupingInterval，那么挂载时就不会发起新的请求。2.) 如果预加载请求已结束，再发一次请求也不占用资源，而且还提升了组件 B 在不需要预加载的场景下的复用性。
 
-[官网推荐的预加载方式](https://useSWR.vercel.app/docs/prefetching#programmatically-prefetch)是使用 mutate 实现，mutate 就是修改该请求的响应值，并存在全局数据中。但使用 mutate 实现时，需要导出 `useData` 的同时导出 key 和 fetcher 给 CompA 使用，写起来会麻烦一些。
+[官网推荐的预加载方式](https://useSWR.vercel.app/docs/prefetching#programmatically-prefetch)是使用 mutate 实现。但使用 mutate 实现时，需要导出 `useData` 的同时导出 key 和 fetcher 给 CompA 使用，写起来会麻烦一些。
 
 ## 5. 组件卸载后不执行 setState
 
-当 React 组件中带有数据请求时，如果组件在请求结果返回前被卸载了，React 警告我们组件存在内存泄漏问题。
+当 React 组件中带有数据请求时，如果组件在请求结果返回前被卸载了，React 会警告我们组件存在内存泄漏问题。
 
 ![组件卸载后执行 setState 的警告](./React Warning-组件卸载后执行 setState.png)
 
@@ -383,7 +417,7 @@ function Comp() {
 
 ## 5. 其他
 
-其他主要是包括轮询机制、错误重试机制和 focus/online 重试机制，这些方式业务上使用得不多，但需要的时候自己实现还是会比较麻烦。
+其他主要包括轮询机制、错误重试机制和 focus/online 重试机制。这些机制在业务上虽然使用得不多，但需要的时候自己实现还是会比较麻烦。
 
 # useSWR 的缺点
 
@@ -393,11 +427,11 @@ function Comp() {
 
 ## 未提供请求中断的 API
 
-在[请求时序问题]()中，请求 2 发出时如果请求 1 没有结束，最好的处理方式是将请求 1 进行终止，避免资源浪费，类似 [axios 的取消机制](https://github.com/axios/axios#cancellation)。 可惜目前 useSWR 并没有提供终止请求的方法。
+在[请求时序问题]()中，请求 2 发出时如果请求 1 没有结束，最好的处理方式是将请求 1 进行终止，避免资源浪费，类似 [axios 的取消机制](https://github.com/axios/axios#cancellation)。可惜目前 useSWR 并没有提供终止请求的方法。
 
 ## 没有 getter 方法去读取数据
 
-useSWR 只有通过它提供的 Hook 才能访问到数据，没有提供一个 getter 方法通过 key 获取数据。这在复杂的依赖更新中还是很需要的，类似于 Redux 的 getState 方法，在任何地方需要某个全局数据，调一下就拿到数据的当前值了，非常方便。而 useSWR 只通过 Hook 返回请求的数据，需要从页面一直传到需要该数据的地方，非常麻烦。
+useSWR 只有通过它提供的 Hook 才能访问到数据，没有提供一个 getter 方法通过 key 获取数据。这在复杂的更新逻辑中还是很需要的，类似于 Redux 的 getState 方法，在任何地方需要某个全局数据时，调一下就拿到数据的当前值了，非常方便。而 useSWR 只通过 Hook 返回请求的数据，需要从页面一直传到需要该数据的地方，非常麻烦。
 
 ## 配置相对于 key 还是相对于 Hook 的，傻傻分不清
 
@@ -433,7 +467,7 @@ function Comp() {
 
 ## 需要手动删除不使用的缓存，避免内存泄漏
 
-目前所有 key 对应的响应结果都没有被删除，为了避免内存泄漏，需要开发人员来清理缓存，可参考[最佳实践-清理 Cache 避免内存泄漏]()。
+目前所有 key 对应的响应结果都没有被删除，为了避免内存泄漏，需要开发人员主动清理缓存，可参考[最佳实践-清理 Cache 避免内存泄漏]()。
 
 # 最佳实践
 
@@ -463,11 +497,13 @@ function CompB() {
 
 ## Error 处理
 
-在前面我们实现的 `useFetch` 方法中，每次请求出错都会执行 `throw err` 将错误再抛出去。但 useSWR 中并没有这样做，它将错误吃掉了，并通过 onError 反馈给我们。所以我们一定要设置全局的 onError，并打印 err 或将 err 上传至 Sentry，方便我们定位问题。
+在前面我们实现的 `useFetch` 方法中，每次请求出错都会执行 `throw err` 将错误再抛出去。但 useSWR 中并没有这样做，它将错误吃掉了，并通过 onError 反馈给我们。所以我们一定要设置全局的 onError 回调函数，并打印 err 或将 err 上传至 Sentry，方便我们定位问题。
 
 ## 清理 Cache 避免内存泄漏
 
-前面说到 useSWR 不会自动清理请求响应，所以我们需要进行主动清理缓存，避免内存泄漏。在 SPA 应用中，建议在页面组件卸载时执行 `cache.clear()` 来清理缓存，但整个应用中某些接口是跨页面共享的，属于应用级别的数据，它们不应该被清理掉，比如用户信息，应用版本配置等等。还好这些跨页面应用级别的接口并不多，这些接口仍然通过 Redux 等其他状态管理库实现，只有页面内的接口才使用 useSWR 实现，最后在页面组件卸载时调用 `cache.clear()` 即可。
+前面说到 useSWR 不会自动清理请求响应，所以我们需要主动清理缓存，避免内存泄漏。在 SPA 应用中，建议在页面组件卸载时执行 `cache.clear()` 来清理缓存。但整个应用中某些接口是跨页面共享的，属于应用级别的数据，它们不应该被清理掉，比如用户信息，应用版本配置等等。还好这些跨页面应用级别的接口并不多，这些接口仍然可通过 Redux 等其他状态管理库实现，只有页面内的接口才使用 useSWR 实现。
+
+在页面组件中调用如下 Hook 就可以将缓存清理掉，避免内存泄漏。
 
 ```
 import { cache } from "useSWR";
@@ -485,6 +521,6 @@ function useCacheClearWhenPageUnmount() {
 
 # 总结
 
-本文给大家分享了 useSWR 的设计思想、使用场景和最佳实践，相信 useSWR 一定会提升大家的编码效率和代码简洁性和可读性。
+本文给大家分享了 useSWR 的设计思想、使用场景和最佳实践，相信 useSWR 一定会提升大家的编码效率、代码简洁性和可读性。
 
-后期我也计划分享 React Query，并将它和 SWR 进行对比，敬请期待。
+后续我也计划分享 React Query，并将它和 SWR 进行对比，敬请期待。
