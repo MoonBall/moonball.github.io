@@ -361,7 +361,55 @@ function CompB() {
 1. 在组件 A 中调用 useData 时传参是 false，因为不希望挂载组件 A 时产生不必要的请求，避免导致页面需要的请求延后。
 2. 展示组件 B 时，组件 A 中已经发起了预加载请求，按理来说我们应该在组件 B 中调用 useData 时也传参 false。但是我们没有这样做，我们从预加载请求的状态来分析下原因。1.) 如果预加载的请求还在进行中，且不超过 dedupingInterval，那么挂载时就不会发起新的请求。2.) 如果预加载请求已结束，再发一次请求也不占用资源，而且还提升了组件 B 在不需要预加载的场景下的复用性。
 
-[官网推荐的预加载方式](https://useSWR.vercel.app/docs/prefetching#programmatically-prefetch)是使用 mutate 实现。但使用 mutate 实现时，需要导出 `useData` 的同时导出 key 和 fetcher 给 CompA 使用，写起来会麻烦一些。
+如果没这么讲究，可以直接组件 A 中调用 `useData()` 或在组件 A 中挂载组件 B，但用 `<div style={{ display: 'none' }}>` 隐藏组件 B。这两种方式的缺点都是，在挂载组件 A 时会发出与当前页面无关的请求，占用资源。通过 `display: 'none'` 实现时，如果组件 B 的 Render 过程很费时，还会导致性能问题，影响首屏渲染。举个例子，在分页场景中，将分页展示数据封装为 Page 组件，则我们可以非常简单地实现下一页的数据预加载。
+
+```js
+// 分页场景下，预加载下一页数据
+function Page({ index }) {
+  const { data } = useSWR(`/api/data?page=${index}`, fetcher)
+
+  // ... 处理加载和错误状态
+
+  return data.map(item => <div key={item.id}>{item.name}</div>)
+}
+
+// 方式一：通过直接调用 useSWR()，获取下一页数据
+function App1() {
+  const [page, setPage] = useState(0)
+  // 预加载下一页数据
+  useSWR(`/api/data?page=${page + 1}`, fetcher)
+
+  return (
+    <div>
+      <Page index={page} />
+      <button onClick={() => setPage(page - 1)}>上一页</button>
+      <button onClick={() => setPage(page + 1)}>下一页</button>
+    </div>
+  )
+}
+
+// 方式二：通过 display: "none" 实现
+function App2() {
+  const [page, setPage] = useState(0)
+
+  // 将 <Page index={pageIndex + 1} /> 放在最后面
+  // 尽量避免阻塞当前页面需要的请求
+  // 这种方式不适合 Page 组件很复杂的场景，会导致性能问题。
+  return (
+    <div>
+      <Page index={page} />
+      <button onClick={() => setPage(page - 1)}>上一页</button>
+      <button onClick={() => setPage(page + 1)}>下一页</button>
+
+      <div style={{ display: "none" }}>
+        <Page index={pageIndex + 1} />
+      </div>
+    </div>
+  )
+}
+```
+
+最后，[官网推荐的预加载方式](https://useSWR.vercel.app/docs/prefetching#programmatically-prefetch)是使用 mutate 实现。但使用 mutate 实现时，需要导出 `useData` 的同时导出 key 和 fetcher 给 CompA 使用，写起来会麻烦一些。
 
 ## 5. 组件卸载后不执行 setState
 
