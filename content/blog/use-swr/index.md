@@ -16,7 +16,7 @@ function CompWithFetch() {
         setData(data)
       } catch (err) {
         Message.error("服务端错误")
-        // Hint: 优秀的代码，一定要 rethrow error，
+        // Hint: 为了方便定位问题，一定要 rethrow error，
         // 不要将错误吃掉
         throw err
       }
@@ -38,7 +38,7 @@ function useFetch(fetcher) {
       setData(data)
     } catch (err) {
       Message.error("服务端错误")
-      // Hint: 优秀的代码，一定要 rethrow error，
+      // Hint: 为了方便定位问题，一定要 rethrow error，
       // 不要将错误吃掉
       throw err
     }
