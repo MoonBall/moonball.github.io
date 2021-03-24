@@ -1,3 +1,5 @@
+[ant-design 中 FormItem 每次渲染时都会改变都会生成新的 onChange 函数](https://github.com/ant-design/ant-design/blob/462386a9abc160f85bb20152a712d0230ffdd7d4/components/form/FormItem.tsx#L372)
+
 本文分为三部分，首先介绍 React 的工作流，让读者对 React 组件更新流程有宏观的认识。然后列出笔者总结的一系列优化技巧，并为稍复杂的优化技巧准备了 CodeSandbox 源码，以便读者实操体验。最后分享笔者使用 React Profiler 的一点心得，帮助读者更快定位性能瓶颈。
 
 # React 工作流

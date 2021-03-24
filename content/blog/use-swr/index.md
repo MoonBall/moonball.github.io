@@ -1,8 +1,26 @@
-# 聊聊 useSWR，为开发提效 | 包括 useSWR 设计思想、优缺点和最佳实践
+---
+# 主题列表：juejin, github, smartblue, cyanosis, channing-cyan, fancy, hydrogen, condensed-night-purple, greenwillow, v-green, vue-pro, healer-readable, mk-cute, jzman, geek-black, awesome-green, qklhk-chocolate
+
+# 贡献主题：https://github.com/xitu/juejin-markdown-themes
+
+theme: hydrogen
+highlight:
+---
+
+# 聊聊 useSWR，为开发提效 - 包括 useSWR 设计思想、优缺点和最佳实践
 
 > **前言**
 >
-> [useSWR](https://github.com/vercel/swr) 是 Vercel 团队维护的 React 数据请求管理库，Vercel 同时也是 Next.js 的创始团队。有如此优秀的团队做支持，相信 useSWR 的思想和源码一定会给我们带来启发。
+> 1. 最近在掘金上遇到个小 Bug，因为该 Bug 和本文内容有关，所以分享给大家。
+>
+>    ![掘金-时序问题.png](https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/af48cd6b75a247eab569fdcdd4250e4b~tplv-k3u1fbpfcp-watermark.image)
+>
+>    在上图中我选的 React 标签，但文章列表却全是 CSS 的。虽然我不知道掘金是如何实现的，但该 Bug 大概率是由于请求的时序问题引起的。
+>    如果掘金用上了 useSWR，一定就不会有这样的 Bug 了，因为 useSWR 内部已经解决了时序问题。
+>
+> 2. [useSWR](https://github.com/vercel/swr) 是 Vercel 团队维护的 React 数据请求管理库，Vercel 同时也是 Next.js 的创始团队。有如此优秀的团队做支持，相信 useSWR 的思想和源码一定会给我们带来启发。
+>
+> 3. 本文是笔者在阅读了 useSWR 源码并在业务中使用它三月后所做的经验总结，希望对读者有所帮助。
 
 在介绍 useSWR 之前，我们先看一个最简单的带有数据请求的 React 组件。
 
@@ -16,8 +34,7 @@ function CompWithFetch() {
         setData(data)
       } catch (err) {
         Message.error("服务端错误")
-        // Hint: 为了方便定位问题，一定要 rethrow error，
-        // 不要将错误吃掉
+        // Hint: 为了方便定位问题，不要将错误吃掉
         throw err
       }
     })()
@@ -38,8 +55,6 @@ function useFetch(fetcher) {
       setData(data)
     } catch (err) {
       Message.error("服务端错误")
-      // Hint: 为了方便定位问题，一定要 rethrow error，
-      // 不要将错误吃掉
       throw err
     }
   }, [fetcher])
@@ -85,13 +100,13 @@ function CompWithUseFetch() {
 
 # 全局服务端数据管理
 
-useSWR 的 API 形式为 `useSWR(key, fetcher, config)`，它将 key 作为请求的 ID。如果多个组件需要共用一个请求，那它们就使用相同的 key 来调用 useSWR。useSWR 内部通过一个[全局 Map](https://github.com/vercel/swr/blob/fa676db47512b07b539e8b933932d714a2e5d3b3/src/config.ts#L7) 来实现 key 和请求的关系，多次调用 useSWR 时，相同的 key 在 useSWR 中只存在一个请求结果。因此，再结合发布者订阅者模式，如果组件对某 key 对应的请求响应进行了修改，那么使用该 key 的其他组件都会收到最新的数据。这种天然的全局服务端数据管理方式，不仅保证了页面数据的一致性，而且可以非常简单地实现数据共享，这点将在[“天然的全局状态方便多组件复用”](#heading-8)中被详细介绍。
+useSWR 的 API 形式为 `useSWR(key, fetcher, config)`，它将 key 作为请求的 ID。如果多个组件需要共用一个请求，那它们就使用相同的 key 来调用 useSWR。useSWR 内部通过一个[全局 Map](https://github.com/vercel/swr/blob/fa676db47512b07b539e8b933932d714a2e5d3b3/src/config.ts#L7) 来实现 key 和请求的关系，多次调用 useSWR 时，相同的 key 在 useSWR 中只存在一个请求结果。因此，再结合发布者订阅者模式，如果组件对某 key 对应的请求响应进行了修改，那么使用该 key 的其他组件都会收到最新的数据。这种天然的全局服务端数据管理方式，不仅保证了页面数据的一致性，而且可以非常简单地实现数据共享，这点将在[“天然的全局状态方便多组件复用”](#heading-9)中详细介绍。
 
 # 声明式数据请求
 
 我们知道 React 是声明式 UI 库，开发者通过编写组件返回的 JSX 告诉 React 页面应该是什么样子的，然后 React 就会将页面更新为开发者想要的模样。因此开发者就只需关心如何写好 JSX 来描述页面，剩下的就交给 React 去优化吧。
 
-useSWR 也是如此，它的 API 形式为 `useSWR(key, fetcher, config)`。如果我们只看前两个参数，我们通过 key 告诉 useSWR 我们需要什么请求，只要 key 改变了，我们便希望得到的是与 key 相对应的请求结果。这就是声明式数据请求，我们无需关心如何发起请求，[请求的时序问题](#heading-7)，只需要告诉 useSWR 我们需要的请求即可。我们前面实现的 useFetch 也是声明式数据请求，useSWR 的 key 就可以理解为生成 fetcher 时 useCallback 的依赖。
+useSWR 也是如此，它的 API 形式为 `useSWR(key, fetcher, config)`。如果我们只看前两个参数，我们通过 key 告诉 useSWR 我们需要什么请求，只要 key 改变了，我们便希望得到的是与 key 相对应的请求结果。这就是声明式数据请求，我们无需关心如何发起请求，[请求的时序问题](#heading-8)，只需要告诉 useSWR 我们需要的请求即可。我们前面实现的 useFetch 也是声明式数据请求，useSWR 的 key 就可以理解为生成 fetcher 时 useCallback 的依赖。
 
 useSWR 的参数 key 不仅可以是字符串，还可以是数组或函数。如果 key 是函数，则会将该函数的执行结果作为 key。如果 key 是数组，则会一次浅比较数组每项，如果有某项发生改变，则表示需要重新发起请求。
 
@@ -106,7 +121,11 @@ useSWR 的参数 key 不仅可以是字符串，还可以是数组或函数。�
 
 useSWR 通过 key 值是否为 null，来标识调用方是否需要请求。或者当 key 是一个函数时，函数执行时报错或返回 null 也可以。当不需要请求时，useSWR 的返回值始终是 `{ data: undefined, error: undefined, isValidating: false }`。
 
-## 如何命令式地触发数据请求
+## 命令式 API
+
+仅仅包含声明式 API 是不够的，接下来我们看看两个需要命令式 API 的场景。
+
+### 命令式发起请求
 
 如果页面上有一个刷新按钮，用户直接点击刷新按钮，期望重新获取服务端数据，通过 useSWR 如何实现该功能呢？
 
@@ -143,7 +162,7 @@ function Comp() {
 }
 ```
 
-## 如何修改数据
+### 修改数据
 
 声明式的数据请求方式，只是告诉 useSWR 需要的请求，那我们有办法直接修改请求吗？
 
@@ -161,7 +180,7 @@ SWR 还提供了全局的 `mutate()` 方法，它的第一个参数是 key，表
 
 在介绍完 useSWR 的设计思想和基本使用后，接下来我们看看 useSWR 的优势，使用了它后解决了哪些问题。
 
-## 1、实现了错误状态和加载状态
+## 1. 实现了错误状态和加载状态
 
 useSWR 不仅和我们实现的 `useFetch` 一样好用，它的返回值还包括错误状态 error 和加载状态 isValidating。如果你曾经为每个请求都写过一次 `try catch` 和 `setLoading(true)`，那么用上 useSWR 后代码绝对会简洁不少。
 
@@ -304,7 +323,59 @@ function CompB() {
 }
 ```
 
-## 4. 轻松实现数据预加载
+## 4. 多 Hook 复用
+
+当组件需要在多个自定义 Hook 中使用某个请求时，如果不使用 useSWR，我们需要给自定义 Hook 加一个参数，然后将请求结果通过该参数传递下去。
+
+```js
+function useData() {
+  const { data } = useSWR("/get/data", fetcher)
+  return data
+}
+
+// 这个例子可以不用 Hook 实现，这里通过 Hook 实现用于举例
+function useSlicedData(data) {
+  return (data || "").slice(0, 1)
+}
+
+function Comp() {
+  const data = useData()
+  const slicedData = useSlicedData(data)
+
+  return (
+    <div>
+      {slicedData} / {data}
+    </div>
+  )
+}
+```
+
+使用 useSWR 后，我们可以就不用传参了，还是要简单一点。
+
+```js
+function useData() {
+  const { data } = useSWR("/get/data", fetcher)
+  return data
+}
+
+function useSlicedData() {
+  const data = useData()
+  return (data || "").slice(0, 1)
+}
+
+function Comp() {
+  const data = useData()
+  const slicedData = useSlicedData()
+
+  return (
+    <div>
+      {slicedData} / {data}
+    </div>
+  )
+}
+```
+
+## 5. 轻松实现数据预加载
 
 因为用户 Hover 到某按钮时，就极可能会点击该按钮，所以常见的数据预加载场景就是在用户 Hover 到某按钮时，预加载点击按钮后需要的数据，以便用户点击按钮后能立即看到结果，而不是看到“数据加载中...”，提升用户体验。
 
@@ -418,7 +489,7 @@ function App2() {
 
 最后，[官网推荐的预加载方式](https://useSWR.vercel.app/docs/prefetching#programmatically-prefetch)是使用 mutate 实现。但使用 mutate 实现时，需要导出 `useData` 的同时导出 key 和 fetcher 给 CompA 使用，写起来会麻烦一些。
 
-## 5. 组件卸载后不执行 setState
+## 6. 组件卸载后不执行 setState
 
 当 React 组件中带有数据请求时，如果组件在请求结果返回前被卸载了，React 会警告我们组件存在内存泄漏问题。
 
@@ -470,7 +541,7 @@ function Comp() {
 }
 ```
 
-## 6. 轮询和重试机制
+## 7. 轮询和重试机制
 
 useSWR 实现了很多请求刷新方式，比如轮询机制、错误重试机制和 focus/online 重试机制。这些机制在业务上虽然使用得不多，但需要的时候自己实现还是会比较麻烦。
 
@@ -482,7 +553,7 @@ useSWR 实现了很多请求刷新方式，比如轮询机制、错误重试机�
 
 ## 未提供请求中断的 API
 
-在[请求时序问题](#heading-7)中，请求 2 发出时如果请求 1 没有结束，最好的处理方式是将请求 1 进行终止，避免资源浪费，类似 [axios 的取消机制](https://github.com/axios/axios#cancellation)。可惜目前 useSWR 并没有提供终止请求的方法。
+在[请求时序问题](#heading-8)中，请求 2 发出时如果请求 1 没有结束，最好的处理方式是将请求 1 进行终止，避免资源浪费，类似 [axios 的取消机制](https://github.com/axios/axios#cancellation)。可惜目前 useSWR 并没有提供终止请求的方法。
 
 ## 没有 getter 方法去读取数据
 
@@ -490,7 +561,7 @@ useSWR 只有通过它提供的 Hook 才能访问到数据，没有提供一个 
 
 ## 配置相对于 key 还是相对于 Hook 的，傻傻分不清
 
-useSWR 中请求是相对于 key 的，但 fetcher 和配置却是相对于 Hook 的，比如同 key 的 useSWR 是可以使用不同的 fetcher 和配置的。尽管我们不会那样写，但还是会造成理解负担。关于这点我们可通过[最佳实践-代码组织](#heading-19)来避免，保证相同 key 的请求的 fetcher 和 config 是一致的。
+useSWR 中请求是相对于 key 的，但 fetcher 和配置却是相对于 Hook 的，比如同 key 的 useSWR 是可以使用不同的 fetcher 和配置的。尽管我们不会那样写，但还是会造成理解负担。关于这点我们可通过[最佳实践-代码组织](#heading-21)来避免，保证相同 key 的请求的 fetcher 和 config 是一致的。
 
 这种设计就存在一个无法修复的 bug，当调用 useSWR 是传了 initialData，那么使用 mutate 时，并不会将当前的 data 传给 mutate 的回调。其原因就是因为 mutate 中的 data 是相对于 key 的，而 initialData 却是相对于 Hook 的。
 
@@ -522,7 +593,7 @@ function Comp() {
 
 ## 需要手动删除不使用的缓存，避免内存泄漏
 
-目前所有 key 对应的响应结果都没有被删除，为了避免内存泄漏，需要开发人员主动清理缓存，可参考[最佳实践-清理 Cache 避免内存泄漏](#heading-21)。
+目前所有 key 对应的响应结果都没有被删除，为了避免内存泄漏，需要开发人员主动清理缓存，可参考[最佳实践-清理 Cache 避免内存泄漏](#heading-23)。
 
 # 最佳实践
 
