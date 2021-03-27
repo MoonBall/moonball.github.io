@@ -47,7 +47,7 @@ function CompWithFetch() {
 如果经常写这样的代码，那么肯定会想到自己封装一个 React Hook，该 Hook 以请求函数作为参数。
 
 ```js
-function useFetch(fetcher) {
+function useFetch(fetcher, deps = []) {
   const [data, setData] = useState()
   const fetch = useCallback(async () => {
     try {
@@ -57,16 +57,16 @@ function useFetch(fetcher) {
       Message.error("服务端错误")
       throw err
     }
-  }, [fetcher])
+  }, deps)
 
-  // fetcher 改变就再次获取数据
+  // deps 改变就重新发起请求
   useEffect(() => {
     fetch()
   }, [fetch])
 
   return {
     data,
-    // 暴露 fetch 给使用方，以便重新拉取数据
+    // 暴露 fetch 给使用方，以便重新发起请求，刷新数据
     fetch,
   }
 }
@@ -77,11 +77,10 @@ function useFetch(fetcher) {
 ```js
 function CompWithUseFetch() {
   const [search, setSearch] = useState("")
-  const fetcher = useCallback(() => {
-    // 拼接 search 参数发起请求
+  // 如果 search 改变就重新发起请求
+  const { data } = useFetch(async () => {
+    return window.fetch(`/api/data?search=${search}`)
   }, [search])
-
-  const { data } = useFetch(fetcher)
 
   return (
     <div>
@@ -94,21 +93,28 @@ function CompWithUseFetch() {
 }
 ```
 
-如 `useFetch` 所示，我们就完成了一个非常迷你的 useSWR 了。调用方需通过 useCallback 生成稳定的 fetcher 函数引用值，这点是为了在请求带有参数时，如果参数改变了就重新发起请求。暴露给调用方的 fetch 函数，可以应对主动刷新的场景，比如页面上的刷新按钮。
+如 `useFetch` 所示，我们就完成了一个非常迷你的 useSWR 了。`useFetch` 有两个功能：
+
+1. 它的第二个参数 deps，是为了在请求带有参数时，如果参数改变了就重新发起请求。
+2. 暴露给调用方的 fetch 函数，可以应对主动刷新的场景，比如页面上的刷新按钮。
 
 通过 `useFetch` 我们已经了解了 useSWR 的主要功能。接着我们进入正题吧，本文分为两个部分，第一部分介绍 useSWR 中的两大思想「全局服务端数据管理」和「声明式数据请求」，第二部分是使用 useSWR 后的总结，包括优缺点和最佳实践。
 
 # 全局服务端数据管理
 
-useSWR 的 API 形式为 `useSWR(key, fetcher, config)`，它将 key 作为请求的 ID。如果多个组件需要共用一个请求，那它们就使用相同的 key 来调用 useSWR。useSWR 内部通过一个[全局 Map](https://github.com/vercel/swr/blob/fa676db47512b07b539e8b933932d714a2e5d3b3/src/config.ts#L7) 来实现 key 和请求的关系，多次调用 useSWR 时，相同的 key 在 useSWR 中只存在一个请求结果。因此，再结合发布者订阅者模式，如果组件对某 key 对应的请求响应进行了修改，那么使用该 key 的其他组件都会收到最新的数据。这种天然的全局服务端数据管理方式，不仅保证了页面数据的一致性，而且可以非常简单地实现数据共享，这点将在[“天然的全局状态方便多组件复用”](#heading-9)中详细介绍。
+useSWR 的 API 形式为 `useSWR(key, fetcher, config)`，它将 key 作为请求的 ID。如果多个组件需要共用一个请求，那它们就使用相同的 key 来调用 useSWR。useSWR 内部通过一个[全局 Map](https://github.com/vercel/swr/blob/fa676db47512b07b539e8b933932d714a2e5d3b3/src/config.ts#L7) 来实现 key 和请求的关系，多次调用 useSWR 时，相同的 key 在 useSWR 中只存在一个请求结果。
+
+因此，再结合发布者订阅者模式，如果组件对某 key 对应的请求响应进行了修改，那么使用该 key 的其他组件都会收到最新的数据。这种天然的全局服务端数据管理方式，不仅保证了页面数据的一致性，而且可以非常简单地实现数据共享，这点将在[“天然的全局状态方便多组件复用”](#heading-9)中详细介绍。
 
 # 声明式数据请求
 
 我们知道 React 是声明式 UI 库，开发者通过编写组件返回的 JSX 告诉 React 页面应该是什么样子的，然后 React 就会将页面更新为开发者想要的模样。因此开发者就只需关心如何写好 JSX 来描述页面，剩下的就交给 React 去优化吧。
 
-useSWR 也是如此，它的 API 形式为 `useSWR(key, fetcher, config)`。如果我们只看前两个参数，我们通过 key 告诉 useSWR 我们需要什么请求，只要 key 改变了，我们便希望得到的是与 key 相对应的请求结果。这就是声明式数据请求，我们无需关心如何发起请求，[请求的时序问题](#heading-8)，只需要告诉 useSWR 我们需要的请求即可。我们前面实现的 useFetch 也是声明式数据请求，useSWR 的 key 就可以理解为生成 fetcher 时 useCallback 的依赖。
+useSWR 也是如此，它的 API 形式为 `useSWR(key, fetcher, config)`。如果我们只看前两个参数，我们通过 key 告诉 useSWR 我们需要什么请求，只要 key 改变了，我们便希望得到的是与 key 相对应的请求结果。这就是声明式数据请求，我们无需关心如何发起请求，[请求的时序问题](#heading-8)，只需要告诉 useSWR 我们需要的请求即可。
 
-useSWR 的参数 key 不仅可以是字符串，还可以是数组或函数。如果 key 是函数，则会将该函数的执行结果作为 key。如果 key 是数组，则会一次浅比较数组每项，如果有某项发生改变，则表示需要重新发起请求。
+我们前面实现的 useFetch 也是声明式数据请求，useSWR 的 key 就可以理解为生成 fetcher 时 useCallback 的依赖。
+
+useSWR 的参数 key 不仅可以是字符串，还可以是数组或函数。如果 key 是函数，则会将该函数的执行结果作为 key。如果 key 是数组，则会依次浅比较数组每项，如果有某项发生改变，则表示需要重新发起请求。
 
 > **扩展知识**
 >
