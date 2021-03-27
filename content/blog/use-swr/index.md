@@ -112,7 +112,7 @@ useSWR 的 API 形式为 `useSWR(key, fetcher, config)`，它将 key 作为请�
 
 useSWR 也是如此，它的 API 形式为 `useSWR(key, fetcher, config)`。如果我们只看前两个参数，我们通过 key 告诉 useSWR 我们需要什么请求，只要 key 改变了，我们便希望得到的是与 key 相对应的请求结果。这就是声明式数据请求，我们无需关心如何发起请求，[请求的时序问题](#heading-8)，只需要告诉 useSWR 我们需要的请求即可。
 
-我们前面实现的 useFetch 也是声明式数据请求，useSWR 的 key 就可以理解为生成 fetcher 时 useCallback 的依赖。
+我们前面实现的 useFetch 也是声明式数据请求，useFetch 的第二个参数 deps 可以理解为 useSWR 的 key。
 
 useSWR 的参数 key 不仅可以是字符串，还可以是数组或函数。如果 key 是函数，则会将该函数的执行结果作为 key。如果 key 是数组，则会依次浅比较数组每项，如果有某项发生改变，则表示需要重新发起请求。
 
