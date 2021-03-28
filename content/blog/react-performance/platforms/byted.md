@@ -1,12 +1,3 @@
----
-# 主题列表：juejin, github, smartblue, cyanosis, channing-cyan, fancy, hydrogen, condensed-night-purple, greenwillow, v-green, vue-pro, healer-readable, mk-cute, jzman, geek-black, awesome-green, qklhk-chocolate
-
-# 贡献主题：https://github.com/xitu/juejin-markdown-themes
-
-theme: juejin
-highlight:
----
-
 # React 性能优化 | 包括原理、技巧、Demo、工具使用
 
 本文分为三部分，首先介绍 React 的工作流，让读者对 React 组件更新流程有宏观的认识。然后列出笔者总结的一系列优化技巧，并为稍复杂的优化技巧准备了 CodeSandbox 源码，以便读者实操体验。最后分享笔者使用 React Profiler 的一点心得，帮助读者更快定位性能瓶颈。
@@ -19,13 +10,13 @@ React 的调和阶段需要做两件事。 **1、计算出目标 State 对应的
 
 React 的提交阶段也需要做两件事。 **1、将调和阶段记录的更新方案应用到 DOM 中。2、调用暴露给开发者的钩子方法，如：componentDidUpdate、useLayoutEffect 等。** 提交阶段中这两件事的执行时机与调和阶段不同，在提交阶段 React 会先执行 1，等 1 完成后再执行 2。因此在子组件的 componentDidMount 方法中，可以执行 `document.querySelector('.parentClass')` ，拿到父组件渲染的 `.parentClass` DOM 节点，尽管这时候父组件的 componentDidMount 方法还没有被执行。useLayoutEffect 的执行时机与 componentDidMount 相同，可参考[线上代码](https://codesandbox.io/s/cdm-yu-commit-jieduanzhixingshunxu-fzu1w?file=/src/App.js)进行验证。
 
-由于调和阶段的「Diff 过程」和提交阶段的「应用更新方案到 DOM」都属于 React 的内部实现，开发者能提供的优化能力有限，本文仅有一条优化技巧（[列表项使用 key 属性](#heading-7))与它们有关。实际工程中大部分优化方式都集中在调和阶段的「计算目标虚拟 DOM 结构」过程，该过程是优化的重点，React 内部的 Fiber 架构和并发模式也是在减少该过程的耗时阻塞。对于提交阶段的「执行钩子函数」过程，开发者应保证钩子函数中的代码尽量轻量，避免耗时阻塞，相关的优化技巧参考本文的[避免在 didMount、didUpdate 中更新组件 State](#heading-18)。
+由于调和阶段的「Diff 过程」和提交阶段的「应用更新方案到 DOM」都属于 React 的内部实现，开发者能提供的优化能力有限，本文仅有一条优化技巧（[列表项使用 key 属性](#heading10))与它们有关。实际工程中大部分优化方式都集中在调和阶段的「计算目标虚拟 DOM 结构」过程，该过程是优化的重点，React 内部的 Fiber 架构和并发模式也是在减少该过程的耗时阻塞。对于提交阶段的「执行钩子函数」过程，开发者应保证钩子函数中的代码尽量轻量，避免耗时阻塞，相关的优化技巧参考本文的[避免在 didMount、didUpdate 中更新组件 State](#heading16)。
 
 > **拓展知识**
 >
 > 1. 建议对 React 生命周期不熟悉的读者结合 [React 组件的生命周期图](https://projects.wojtekmaj.pl/react-lifecycle-methods-diagram/)阅读本文。记得勾选该网站上的复选框。
 > 2. 因为理解事件循环后才知道页面会在什么时候被更新，所以推荐一个[介绍事件循环的视频](https://www.youtube.com/watch?v=u1kqx6AenYw&t=853s)。该视频中事件循环的伪代码如下图，非常清晰易懂。
->    ![](./imgs/事件循环代码.png)
+>    ![事件循环代码.png](https://tech-proxy.bytedance.net/tos/images/1616903610349_715163a4df062d6ed73bfeff1df3655b.png)
 
 ## 定义 Render 过程
 
@@ -51,7 +42,7 @@ React 的提交阶段也需要做两件事。 **1、将调和阶段记录的更�
 
 在 React 刚开源的那段时期，数据不可变性还没有现在这样流行。当时 Flux 架构就使用的模块变量来维护 State，并在状态更新时直接修改该模块变量的属性值，而不是使用[展开语法](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Operators/Spread_syntax)生成新的对象引用。例如要往数组中添加一项数据时，当时的代码很可能是 `state.push(item)`，而不是 `const newState = [...state, item]`。这点可参考 Dan Abramov 在[演讲 Redux 时](https://www.youtube.com/watch?v=xsSnOQynTHs&t=690s)演示的 Flux 代码。
 
-![](./imgs/Flux代码模块全局变量.png)
+![Flux代码模块全局变量.png](https://tech-proxy.bytedance.net/tos/images/1616903709927_9fafe6d5ca1783d7a654bac51783d332.png)
 
 在此背景下，当时的开发者经常使用 shouldComponentUpdate 来深比较 Props，只在 Props 有修改才执行组件的 Render 过程。如今由于数据不可变性和函数组件的流行，这样的优化场景已经不会再出现了。
 
@@ -76,9 +67,9 @@ B 组件的 shouldComponentUpdate 中只比较了 data.a 和 data.b，目前是�
 
 > **拓展知识**
 >
-> 1. 第二个场景最好的解决方案是使用发布者订阅者模式，只是代码改动要稍多一些，可参考本文的优化技巧「[发布者订阅者跳过中间组件 Render 过程](#heading-10)」。
+> 1. 第二个场景最好的解决方案是使用发布者订阅者模式，只是代码改动要稍多一些，可参考本文的优化技巧「[发布者订阅者跳过中间组件 Render 过程](#heading8)」。
 > 2. 第二个场景也可以在父子组件间增加中间组件，中间组件负责从父组件中选出子组件关心的属性，再传给子组件。相比于 shouldComponentUpdate 方法，会增加组件层级，但不会有第二个弊端。
-> 3. 本文中的[跳过回调函数改变触发的 Render 过程](#heading-16)也可以用 shouldComponentUpdate 实现，因为回调函数并不参与组件的 Render 过程。
+> 3. 本文中的[跳过回调函数改变触发的 Render 过程](#heading12)也可以用 shouldComponentUpdate 实现，因为回调函数并不参与组件的 Render 过程。
 
 ### 3. useMemo、useCallback 实现稳定的 Props 值
 
@@ -231,7 +222,7 @@ export default function App() {
 }
 ```
 
-在这种场景中，我们仍然将 color 状态抽取到新组件中，并提供一个插槽来组合 `<ExpensiveTree />`，如下所示。
+在这种场景中，我们仍然将 color 状态抽取到新组件中，并提供一个插槽 Props 给 `<ExpensiveTree />`，如下所示。
 
 ```js
 import { useState } from "react"
@@ -259,7 +250,7 @@ function ColorContainer({ expensiveTreeNode }) {
 ### 6. 列表项使用 key 属性
 
 当渲染列表项时，如果不给组件设置不相等的属性 key，就会收到如下报警。
-![](./imgs/列表中每项有同key时报警.png)
+![列表中每项有同key时报警.png](https://tech-proxy.bytedance.net/tos/images/1616903752158_f567a45627f188b446d5432898738577.png)
 
 相信很多开发者已经见过该报警成百上千次了，那 key 属性到底在优化了什么呢？举个 🌰，在不使用 key 时，组件两次 Render 的结果如下。
 
@@ -525,7 +516,7 @@ export default Card
 
 这个技巧不仅仅适用于 didMount、didUpdate，还包括 willUnmount、useLayoutEffect 和特殊场景下的 useEffect（当父组件的 cDU/cDM 触发时，子组件的 useEffect 会同步调用），本文为叙述方便将他们统称为「提交阶段钩子」。
 
-[React 工作流](#heading-0)提交阶段的第二步就是执行提交阶段钩子，它们的执行会阻塞浏览器更新页面。如果在提交阶段钩子函数中更新组件 State，会再次触发组件的更新流程，造成两倍耗时。
+[React 工作流](#heading1)提交阶段的第二步就是执行提交阶段钩子，它们的执行会阻塞浏览器更新页面。如果在提交阶段钩子函数中更新组件 State，会再次触发组件的更新流程，造成两倍耗时。
 
 一般在提交阶段的钩子中更新组件状态的场景有：
 
@@ -741,7 +732,7 @@ function BatchedComponent() {
 >
 > 1. 推荐阅读[为什么 setState 是异步的？](https://github.com/facebook/react/issues/11527#issuecomment-360199710)
 > 2. 为什么面试官不会问“函数组件中的 setState 是同步的还是异步的？”？因为函数组件中生成的函数是通过闭包引用了 state，而不是通过 this.state 的方式引用 state，所以函数组件的处理函数中 state 一定是旧值，不可能是新值。可以说函数组件已经将这个问题屏蔽掉了，所以面试官也就不会问了。可参考[线上示例](https://codesandbox.io/s/setstate-tongbuhuanshiyibu-1bo16)。
-> 3. 根据[官方文档](https://reactjs.org/docs/concurrent-mode-adoption.html#feature-comparison)，在 React 并发模式中，将默认以批量更新方式执行 setState。到那时候，也可能就不需要这个优化了。![](./imgs/unstable_batchedUpdates.png)
+> 3. 根据[官方文档](https://reactjs.org/docs/concurrent-mode-adoption.html#feature-comparison)，在 React 并发模式中，将默认以批量更新方式执行 setState。到那时候，也可能就不需要这个优化了。![unstable_batchedUpdates.png](https://tech-proxy.bytedance.net/tos/images/1616903785803_b441a6104b09829957dbbee9050d4480.png)
 
 ### 3. 按优先级更新，及时响应用户
 
@@ -829,7 +820,7 @@ React Profiler 是 React 官方提供的性能审查工具，本文只介绍笔�
 
 通过在 React v16 版本上进行实验，同时开启 Chrome 的 Performance 和 React Profiler 统计。如下图，在 Performance 面板中，调和阶段和提交阶段耗时分别为 642ms 和 300ms，而 Profiler 面板中只显示了 642ms，没有提交阶段的耗时信息。
 
-![](./imgs/timing-vs-profiler.png)
+![timing-vs-profiler.png](https://tech-proxy.bytedance.net/tos/images/1616903825831_f624517895581d24faec1efa1a2ab340.png)
 
 > **拓展知识**
 >
@@ -839,10 +830,10 @@ React Profiler 是 React 官方提供的性能审查工具，本文只介绍笔�
 ## 开启「记录组件更新原因」
 
 点击面板上的齿轮，然后勾选「Record why each component rendered while profiling.」，如下图。
-![](./imgs/Profiler记录原因.jpg)
+![Profiler记录原因.jpg](https://tech-proxy.bytedance.net/tos/images/1616903845423_0a8f0463a9b527dcd53ac414ecb2d28d.jpg)
 
 点击面板中的虚拟 DOM 节点，右侧便会展示该组件重新 Render 的原因。
-![](./Profiler-why-render.jpg)
+![Profiler-why-render.jpg](https://tech-proxy.bytedance.net/tos/images/1616903852915_641c32da679f5ff6cde4ff49a3c0c271.jpg)
 
 ## 定位产生本次 Render 过程原因
 
