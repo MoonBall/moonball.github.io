@@ -257,15 +257,15 @@ function ColorContainer({ expensiveTreeNode }) {
 ```html
 <!-- 前一次 Render 结果 -->
 <ul>
-  <li>Duke</li>
-  <li>Villanova</li>
+  <li>iOS</li>
+  <li>Android</li>
 </ul>
 
 <!-- 新的 Render 结果 -->
 <ul>
-  <li>Connecticut</li>
-  <li>Duke</li>
-  <li>Villanova</li>
+  <li>Web</li>
+  <li>iOS</li>
+  <li>Android</li>
 </ul>
 ```
 
@@ -276,15 +276,15 @@ function ColorContainer({ expensiveTreeNode }) {
 ```html
 <!-- 前一次 Render 结果 -->
 <ul>
-  <li key="2015">Duke</li>
-  <li key="2016">Villanova</li>
+  <li key="iOS">iOS</li>
+  <li key="Android">Android</li>
 </ul>
 
 <!-- 新的 Render 结果 -->
 <ul>
-  <li key="2014">Connecticut</li>
-  <li key="2015">Duke</li>
-  <li key="2016">Villanova</li>
+  <li key="Web">Web</li>
+  <li key="iOS">iOS</li>
+  <li key="Android">Android</li>
 </ul>
 ```
 
