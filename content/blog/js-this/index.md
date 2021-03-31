@@ -1,23 +1,23 @@
 # this 指向问题，全网最全最简单口诀
 
-Believe Me，只要背诵本文的 7️⃣ 步口诀，就能成为 JS this 专家。
+相信我，只要记住本文的 7️⃣ 步口诀，就能彻底掌握 JS 中的 this 指向。
 
-先念口诀：箭头、new、bind、apply 或 call、欧比届点（obj.）、直接调用、不在函数里。
+先念口诀：箭头函数、new、bind、apply 和 call、欧比届点（obj.）、直接调用、不在函数里。
 
-按照口诀的顺序，只要满足前面某个场景，就可以确定 this 指向了，也不用考虑后面的场景了。
+按照口诀的顺序，只要满足前面某个场景，就可以确定 this 指向了。
 
-接下来按照口诀顺序对它们进行详解， 示例代码除非特别说明都运行在 Chrome 的 Console 控制面中。
+接下来按照口诀顺序对它们进行详解，文中示例代码都运行在 Chrome 的 Console 控制台中。
 
 # 1. 箭头函数
 
-箭头函数排在第一个是因为它的 this 是不能被改变的，所以只要当前函数是箭头函数，那么就不用再看其他规则了。
+箭头函数排在第一个是因为它的 this 不会被改变，所以只要当前函数是箭头函数，那么就不用再看其他规则了。
 
-箭头函数的 this 是在创建它时外层 this 的指向，这里的重点有两个：
+箭头函数的 this 是在创建它时外层 this 的指向。这里的重点有两个：
 
 1. **创建箭头函数时**，就已经确定了它的 this 指向。
-2. this 指向外层的 this。
+2. 箭头函数内的 this 指向**外层的 this**。
 
-所以要知道箭头函数的 this 就得先知道外层 this 的指向，就需要继续在外层应用七步口诀。
+所以要知道箭头函数的 this 就得先知道外层 this 的指向，需要继续在外层应用七步口诀。
 
 # 2. new
 
@@ -34,15 +34,15 @@ new func() // throw error
 
 ![](./imgs/new-arrow-function-error.png)
 
-从控制台中可以看出，箭头函数并不能当做构造函数，不能与 new 一起执行。
+从控制台中可以看出，箭头函数不能当做构造函数，所以不能与 new 一起执行。
 
 # 3. bind
 
 bind 是指 [Function.prototype.bind()](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Function/bind)。
 
-## 多次 bind 时 this 为第一次 bind 的值
+## 多次 bind 时只认第一次 bind 的值
 
-这点经常出错。
+**易错点**
 
 ```js
 function func() {
@@ -52,7 +52,7 @@ function func() {
 func.bind(1).bind(2)() // 1
 ```
 
-## bind 与箭头函数
+## 箭头函数中 this 不会被修改
 
 ```js
 func = () => {
@@ -76,7 +76,7 @@ boundFunc = func.bind(1)
 new boundFunc() // Object true，口诀 2 优先
 ```
 
-# 4. apply 或 call
+# 4. apply 和 call
 
 `apply()` 和 `call()` 的第一个参数都是 this，区别在于通过 apply 调用时实参是放到数组中的，而通过 call 调用时实参是逗号分隔的。
 
@@ -93,7 +93,7 @@ func = () => {
 func.apply(1) // Window，口诀 1 优先
 ```
 
-## bind 函数不会被修改
+## bind 函数中 this 不会被修改
 
 **易错点**
 
@@ -110,12 +110,12 @@ boundFunc.apply(2) // 1，口诀 3 优先
 
 ```js
 function func() {
-  console.log(this)
+  console.log(this.x)
 }
 
 obj = { x: 1 }
 obj.func = func
-obj.func() // { x: 1 }
+obj.func() // 1
 ```
 
 这里就不用代码例证箭头函数和 bind 函数的优先级更高了，有兴趣可自行尝试吧。
@@ -157,15 +157,11 @@ outerFunc.bind({ x: 1 })()
 1. 在 `<script />` 标签里，this 指向 Window。
 2. 在 Node.js 的模块文件里，this 指向 Module 的默认导出对象，也就是 module.exports。
 
-# 严格模式与正常模式的区别
+# 非严格模式
 
-很多同学经常说“在严格模式直接调用函数时，this 指向 undefined，而在非严格模式 this 指向全局对象”，这是不严谨的。
+严格模式是在 ES5 提出的。在 ES5 规范之前，也就是非严格模式下，this 不能是 undefined 或 null。所以**在非严格模式下，通过上面七步口诀，如果得出 this 指向是 undefined 或 null，那么 this 会指向全局对象。**在浏览器环境中全局对象是 Window，在 Node.js 环境中是 Global。
 
-实际上在严格模式下 this 可以为 undefined 或 null，而在正常模式下，this 不可能为 undefined 或 null。
-
-在正常模式下，通过上面七步口诀，如果得出 this 指向是 undefined 或 null，那么 this 会指向全局对象。在浏览器环境中全局对象是 Window，在 Node.js 环境中是 Global。
-
-例如下面的代码，在正常模式下，this 都指向全局对象。
+例如下面的代码，在非严格模式下，this 都指向全局对象。
 
 ```js
 function a() {
@@ -186,7 +182,10 @@ a.bind().bind(2)()
 a.apply()
 ```
 
-在严格模式下，执行同样的代码进行对比。记住要一次性将所有代码在控制台中，一次执行，才能运行在严格模式中。
+非严格模式下执行结果为：
+![](./imgs/非严格模式下-this-为-nullish.png)
+
+在严格模式下，执行同样的代码进行对比。记住要一次性将所有代码复制粘贴到控制台中，才能运行在严格模式下（因为第一行 "use strict" 才会对后面的代码生效）。
 
 ```js
 "use strict"
@@ -210,25 +209,23 @@ a.apply()
 ```
 
 严格模式下执行结果为：
+![](./imgs/严格模式下-this-为-nullish.png)
 
-![](./imgs/严格模式和非严格模式.png)
+七步口诀在严格模式下和非严格模式下都是完备的，只是在非严格模式下 null 或 undefined 会被转换为全局对象。所以我没有将这点列入口诀中。
 
 # 做题复习
 
-先背诵口诀再做题，“箭头、new、bind、apply 或 call、欧比届点（obj.）、直接调用、不在函数里”。
+先背诵口诀再做题，“箭头函数、new、bind、apply 和 call、欧比届点（obj.）、直接调用、不在函数里”。
 
-## 下面代码执行后，func.count 值为多少？
+## 1. 下面代码执行后，func.count 值为多少？
 
 ```js
 function func(num) {
-  console.log(num)
   this.count++
 }
 
 func.count = 0
-func(1) // 1
-func(2) // 2
-func(3) // 3
+func(1)
 ```
 
 ---
@@ -237,9 +234,9 @@ func(3) // 3
 
 func.count 值为 0。
 
-按照口诀，`func()` 调用时属于第 6 类「直接调用」。在非严格模式下，`this` 指向全局对象。`this` 跟 func 一点关系都没有，所以 `func.count` 保持不变。
+按照口诀，`func()` 调用时属于第 6 类「直接调用」。在非严格模式下，`this` 指向全局对象。`this` 跟 func 一点关系都没有，所以 `func.count` 保持不变。so easy。
 
-## 以下代码中箭头函数指向谁？
+## 2. 以下箭头函数中 this 指向谁呢？
 
 ```js
 obj = {
@@ -260,7 +257,10 @@ func = obj.func
 func()()
 
 obj.func.bind({ _name: "newObj" })()()
+
 obj.func.bind()()()
+
+obj.func.bind({ _name: "bindObj" }).apply({ _name: "applyObj" })()
 ```
 
 ### 答案
@@ -270,6 +270,13 @@ obj.func.bind()()()
 // undefined
 // newObj
 // undefined
+// bindObj
 ```
 
-你学废了吗？
+是不是很简单，你学废了吗？
+
+> 如果学会了，请点赞关注吧~
+>
+> 如果没学会，就点赞本文，多看几遍~
+>
+> 如有疑问，欢迎评论~
