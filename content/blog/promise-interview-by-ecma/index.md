@@ -3,19 +3,23 @@
 
 # 贡献主题：https://github.com/xitu/juejin-markdown-themes
 
+# 摘要：为什么「JS 中 Promise 的微任务顺序」和手写 Promise A+ 版本不一致？本文从 ECMA 规范的角度，理清楚规范对 JS 中 Promise 的定义，并将原理和结论阐述清楚。
+
 theme: channing-cyan
 highlight:
 ---
 
-# 搞定 Promise 面试题，从 ECMA 规范一步步详解
+# 从 ECMA 规范掌握 Promise 涉及的微任务
 
 # 前言
 
-与其他讨论 Promise 面试题的文章不同，本文将从 ECMA 规范的角度，带领大家通过规范一步步得出结论。
+最近阅读了 「[从一道让我失眠的 Promise 面试题开始，深入分析 Promise 实现细节](https://juejin.cn/post/6945319439772434469)」这篇文章，但仍然不明白为什么「JS 中 Promise 的微任务顺序」和手写 Promise A+ 版本不一致。
 
-如果读者学会了该方法，以后再遇到其他问题，也可以通过查阅规范进行求解。
+于是决定从 ECMA 规范的角度，理清楚规范对 JS 中 Promise 的定义，并将原理和结论阐述清楚。
 
-因为阅读规范比较枯燥费时，所以**如果读者时间有限，建议只读第一章节即可**。
+**如果读者时间有限，建议只读第一章节即可**。第一章通过画图执行和原理总结的方式，非常清晰地解释了 JS 中 Promise 微任务的注册和执行。
+
+后续章节详细记录了我阅读 ECMA 的过程，通过规范解决心中疑惑。如果读者学会了该方法，以后再遇到其他问题，也可以通过查阅规范进行求解。
 
 # Promise 面试题
 
@@ -53,11 +57,11 @@ Promise.resolve()
 
 以上代码输出结果为：**0 1 2 3 4 5 6**。
 
-如果你觉得输出结果是 **0 1 2 4 3 5 6**，那就是**经典错误**。
+如果你觉得输出结果是 **0 1 2 4 3 5 6**，那就是**经典错误**。在「[从一道让我失眠的 Promise 面试题开始，深入分析 Promise 实现细节](https://juejin.cn/post/6945319439772434469)」这篇文章中，通过手写 Promise A+ 实现 Promise 时，其结果就是它。
 
 ## 命名 Promise
 
-对代码中生成的所有 Promise 进行命名，方便后续说明。
+为了后续叙述方便，我们先对代码中生成的所有 Promise 进行命名。
 
 ![namedPromise.png](https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/b6f132a382b643be97b29d06cb13a8c3~tplv-k3u1fbpfcp-watermark.image)
 
@@ -555,13 +559,6 @@ Promise.resolve()
 第一个微任务是 PromiseReactionJob，其内容为 `Promise.resolve().then(cb)` 的回调 cb。
 
 第二个微任务是 PromiseResolveThenableJob。
-
-# 其他 Promise 文章参考
-
-读者有兴趣可参考其他 Promise 面试题文章。
-
-1. [从一道让我失眠的 Promise 面试题开始，深入分析 Promise 实现细节](https://juejin.cn/post/6945319439772434469)
-2. [我以为我很懂 Promise，直到我开始实现 Promise/A+规范 | 技术点评](https://juejin.cn/post/6945319439772434469)
 
 ---
 
