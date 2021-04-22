@@ -88,3 +88,13 @@ WebStorm 版本
 # useSWR
 
 1. 源码中的 examples 是通过通过 README
+
+VSCode 中配置
+
+```js
+  "debug.javascript.terminalOptions": {
+    "skipFiles": [
+      "<node_internals>/**"
+    ]
+  }
+```
