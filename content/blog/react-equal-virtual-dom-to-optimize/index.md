@@ -64,7 +64,7 @@ function App() {
 
 > 该例子优化技巧对应[React 性能优化](https://juejin.cn/post/6935584878071119885)之[状态下放，缩小状态影响范围](https://juejin.cn/post/6935584878071119885#heading-8)。
 
-## 例二
+# 例二
 
 代码如下，通过 useMemo 实现「不变的虚拟 DOM」。线上 Demo [请戳这里](https://codesandbox.io/s/infallible-shaw-qp8vu?file=/src/App.js)。
 
@@ -89,7 +89,7 @@ function Parent() {
 
 > 该例子优化技巧对应 [React 性能优化](https://juejin.cn/post/6935584878071119885)之「[useMemo 返回虚拟 DOM](https://juejin.cn/post/6935584878071119885#heading-10)」，是一种常用的性能优化手段。
 
-## 例三（优化前）
+# 例三（优化前）
 
 为了与前面两例做对比，将优化前的组件写法也列在这里，代码如下。线上 Demo [请戳这里](https://codesandbox.io/s/determined-shockley-7ytce?file=/src/App.js)。
 

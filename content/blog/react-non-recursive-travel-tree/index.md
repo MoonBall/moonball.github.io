@@ -25,7 +25,7 @@ highlight:
 [树](https://baike.baidu.com/item/%E6%A0%91/2699484?fromtitle=%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%20%E6%A0%91)的关键点是：在一颗树中，除根节点外，其他节点**有且仅有**一个父节点。
 
 [先序遍历](https://baike.baidu.com/item/%E5%85%88%E5%BA%8F%E9%81%8D%E5%8E%86/6442839)指，首先访问根结点，然后遍历左子树，最后遍历右子树。先序遍历下图所示的树，遍历结果为：ABDECF。
-![](./imgs/tree.png)
+![tree.png](https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/3f34e8988b72412e8955df1f92eb9bdc~tplv-k3u1fbpfcp-watermark.image)
 
 [后序遍历](https://baike.baidu.com/item/%E5%90%8E%E5%BA%8F%E9%81%8D%E5%8E%86/1214806)指，首先遍历左子树，然后遍历右子树，最后访问根结点，在遍历左、右子树时，仍然先遍历左子树，然后遍历右子树，最后访问根结点。后序遍历上图所示的树，遍历结果为：DEBFCA。
 
@@ -270,13 +270,13 @@ preAndPostOrderTravel(nodeB)
 # 为什么 React 没有中序遍历？
 
 [中序遍历](https://baike.baidu.com/item/%E4%B8%AD%E5%BA%8F%E9%81%8D%E5%8E%86)是二叉树特有的遍历方式。中序遍历指，首先遍历左子树，然后访问根结点，最后遍历右子树。中序遍历下图所示的二叉树，遍历结果为：DBEAFC。
-![](./imgs/tree.png)
+![tree.png](https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/3f34e8988b72412e8955df1f92eb9bdc~tplv-k3u1fbpfcp-watermark.image)
 
 因为在 React 的虚拟 DOM 树中，节点可以有任意多个子节点，所以它不是一颗二叉树。因此也就不存在中序遍历方式了。
 
 # 总结
 
-在计算机学科中，树的遍历算法是数据结构课程的基础内容。掌握先序遍历和后序遍历对理解 React 内部流程非常有帮助，比如：React 调和阶段是先序遍历（先执行父组件的 Render，再执行子组件的 Render）、React componentDidMount 是后序遍历（先执行子组件的 cDM，再执行父组件的 cDM），还有 [useEffect 和 useLayoutEffect 回调的执行时机]()等等。
+在计算机学科中，树的遍历算法是数据结构课程的基础内容。掌握先序遍历和后序遍历对理解 React 内部流程非常有帮助，比如：React 调和阶段是先序遍历（先执行父组件的 Render，再执行子组件的 Render）、React componentDidMount 是后序遍历（先执行子组件的 cDM，再执行父组件的 cDM），还有 [useEffect 和 useLayoutEffect 回调的执行时机](https://juejin.cn/post/6959372766114119688)等等。
 
 本文通过递归算法和非递归算法分别实现了树的先序遍历和后序遍历。相信我们在未来都能用上树，到那时再回来看看本文吧。
 

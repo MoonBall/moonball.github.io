@@ -1,4 +1,4 @@
-# React 性能优化 | 包括原理、技巧、Demo、工具使用
+# React 性能优化小结
 
 本文分为三部分，首先介绍 React 的工作流，让读者对 React 组件更新流程有宏观的认识。然后列出笔者总结的一系列优化技巧，并为稍复杂的优化技巧准备了 CodeSandbox 源码，以便读者实操体验。最后分享笔者使用 React Profiler 的一点心得，帮助读者更快定位性能瓶颈。
 
@@ -514,7 +514,7 @@ export default Card
 
 ### 1. 避免在 didMount、didUpdate 中更新组件 State
 
-这个技巧不仅仅适用于 didMount、didUpdate，还包括 willUnmount、useLayoutEffect 和特殊场景下的 useEffect（当父组件的 cDU/cDM 触发时，子组件的 useEffect 会同步调用），本文为叙述方便将他们统称为「提交阶段钩子」。
+这个技巧不仅仅适用于 didMount、didUpdate，还包括 willUnmount、useLayoutEffect，本文为叙述方便将他们统称为「提交阶段钩子」。
 
 [React 工作流](#heading1)提交阶段的第二步就是执行提交阶段钩子，它们的执行会阻塞浏览器更新页面。如果在提交阶段钩子函数中更新组件 State，会再次触发组件的更新流程，造成两倍耗时。
 
