@@ -82,3 +82,6 @@ https://portswigger.net/web-security/all-materials
 
 https://owasp.org/www-community/attacks/#
 这个网站也有很多攻击方式的文章。例子中有大量代码，不太适合翻译。
+
+在这里看看有没有有兴趣的。。。https://blog.csdn.net/weixin_43047908/category_10904823.html
+
