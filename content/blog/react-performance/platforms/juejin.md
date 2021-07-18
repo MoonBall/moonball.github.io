@@ -9,6 +9,16 @@ highlight:
 
 # React 性能优化 | 包括原理、技巧、Demo、工具使用
 
+# 解答的问题
+
+通过阅读本文，你将找到以下问题的答案：
+
+1. React 的工作流程是什么？我们可以在哪些阶段进行性能优化呢？
+2. 如果 React 项目中出现了卡顿，我们可以采用哪些性能优化技巧？
+3. 如何通过 React Profiler 定位性能问题？React Profiler 包含哪些阶段的信息？
+
+# 大纲
+
 本文分为三部分，首先介绍 React 的工作流，让读者对 React 组件更新流程有宏观的认识。然后列出笔者总结的一系列优化技巧，并为稍复杂的优化技巧准备了 CodeSandbox 源码，以便读者实操体验。最后分享笔者使用 React Profiler 的一点心得，帮助读者更快定位性能瓶颈。
 
 # React 工作流
@@ -19,7 +29,7 @@ React 的调和阶段需要做两件事。 **1、计算出目标 State 对应的
 
 React 的提交阶段也需要做两件事。 **1、将调和阶段记录的更新方案应用到 DOM 中。2、调用暴露给开发者的钩子方法，如：componentDidUpdate、useLayoutEffect 等。** 提交阶段中这两件事的执行时机与调和阶段不同，在提交阶段 React 会先执行 1，等 1 完成后再执行 2。因此在子组件的 componentDidMount 方法中，可以执行 `document.querySelector('.parentClass')` ，拿到父组件渲染的 `.parentClass` DOM 节点，尽管这时候父组件的 componentDidMount 方法还没有被执行。useLayoutEffect 的执行时机与 componentDidMount 相同，可参考[线上代码](https://codesandbox.io/s/cdm-yu-commit-jieduanzhixingshunxu-fzu1w?file=/src/App.js)进行验证。
 
-由于调和阶段的「Diff 过程」和提交阶段的「应用更新方案到 DOM」都属于 React 的内部实现，开发者能提供的优化能力有限，本文仅有一条优化技巧（[列表项使用 key 属性](#heading-9))与它们有关。实际工程中大部分优化方式都集中在调和阶段的「计算目标虚拟 DOM 结构」过程，该过程是优化的重点，React 内部的 Fiber 架构和并发模式也是在减少该过程的耗时阻塞。对于提交阶段的「执行钩子函数」过程，开发者应保证钩子函数中的代码尽量轻量，避免耗时阻塞，相关的优化技巧参考本文的[避免在 didMount、didUpdate 中更新组件 State](#heading-15)。
+由于调和阶段的「Diff 过程」和提交阶段的「应用更新方案到 DOM」都属于 React 的内部实现，开发者能提供的优化能力有限，本文仅有一条优化技巧（[列表项使用 key 属性](#heading-11))与它们有关。实际工程中大部分优化方式都集中在调和阶段的「计算目标虚拟 DOM 结构」过程，该过程是优化的重点，React 内部的 Fiber 架构和并发模式也是在减少该过程的耗时阻塞。对于提交阶段的「执行钩子函数」过程，开发者应保证钩子函数中的代码尽量轻量，避免耗时阻塞，相关的优化技巧参考本文的[避免在 didMount、didUpdate 中更新组件 State](#heading-17)。
 
 > **拓展知识**
 >
@@ -76,9 +86,9 @@ B 组件的 shouldComponentUpdate 中只比较了 data.a 和 data.b，目前是�
 
 > **拓展知识**
 >
-> 1. 第二个场景最好的解决方案是使用发布者订阅者模式，只是代码改动要稍多一些，可参考本文的优化技巧「[发布者订阅者跳过中间组件 Render 过程](#heading-7)」。
+> 1. 第二个场景最好的解决方案是使用发布者订阅者模式，只是代码改动要稍多一些，可参考本文的优化技巧「[发布者订阅者跳过中间组件 Render 过程](#heading-9)」。
 > 2. 第二个场景也可以在父子组件间增加中间组件，中间组件负责从父组件中选出子组件关心的属性，再传给子组件。相比于 shouldComponentUpdate 方法，会增加组件层级，但不会有第二个弊端。
-> 3. 本文中的[跳过回调函数改变触发的 Render 过程](#heading-11)也可以用 shouldComponentUpdate 实现，因为回调函数并不参与组件的 Render 过程。
+> 3. 本文中的[跳过回调函数改变触发的 Render 过程](#heading-13)也可以用 shouldComponentUpdate 实现，因为回调函数并不参与组件的 Render 过程。
 
 ### 3. useMemo、useCallback 实现稳定的 Props 值
 
@@ -525,7 +535,7 @@ export default Card
 
 这个技巧不仅仅适用于 didMount、didUpdate，还包括 willUnmount、useLayoutEffect 和特殊场景下的 useEffect（当父组件的 cDU/cDM 触发时，子组件的 useEffect 会同步调用），本文为叙述方便将他们统称为「提交阶段钩子」。
 
-[React 工作流](#heading-0)提交阶段的第二步就是执行提交阶段钩子，它们的执行会阻塞浏览器更新页面。如果在提交阶段钩子函数中更新组件 State，会再次触发组件的更新流程，造成两倍耗时。
+[React 工作流](#heading-2)提交阶段的第二步就是执行提交阶段钩子，它们的执行会阻塞浏览器更新页面。如果在提交阶段钩子函数中更新组件 State，会再次触发组件的更新流程，造成两倍耗时。
 
 一般在提交阶段的钩子中更新组件状态的场景有：
 
@@ -850,6 +860,17 @@ React Profiler 是 React 官方提供的性能审查工具，本文只介绍笔�
 
 在 Profiler 面板左侧的虚拟 DOM 树结构中，从上到下审查每个发生了渲染的（不会灰色的）组件。如果组件是由于 State 或 Hook 改变触发了 Render 过程，那它就是我们要找的组件，如下图。
 ![](https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/e042df82947445539ee0068835637e3d~tplv-k3u1fbpfcp-watermark.image)
+
+# 总结
+
+通过本文，我们先掌握了 React 的工作流，React 组件一次状态更新分为调和阶段和提交阶段。React 项目的性能优化点主要集中在调和阶段，通过尽量避免不必要的组件进入 Render 过程达到优化的目的。在真实项目中，如果遇到性能问题，先通过 React Profiler 定位耗时原因，然后根据具体情况选择优化手段。
+
+## 选择优化技巧
+
+1. 如果是因为存在不必要更新的组件进入了 Render 过程，则选择[跳过不必要的组件更新](#heading-5)进行优化。
+2. 如果是因为页面挂载了太多不可见的组件，则选择[懒加载](#heading-20)、[懒渲染](#heading-21)或[虚拟列表](#heading-22)进行优化。
+3. 如果是因为多次设置状态，引起了多次状态更新，则选择[批量更新](#heading-23)或[debounce、throttle 优化频繁触发的回调](#heading-26)进行优化。
+4. 如果组件 Render 逻辑的确非常耗时，我们需要先定位到耗时代码，并判断能否通过缓存优化它。如果能，则选择[缓存优化](#heading-25)，否则选择[按优先级更新，及时响应用户](#heading-24)，将组件逻辑进行拆解，以便更快响应用户。
 
 # 结语
 
