@@ -1,8 +1,15 @@
-<!--
-  摘要：tapable 是为了使系统更容易扩展而抽象的库。它要求将程序设计为一套流程，然后开发者可以在任意的流程节点中进行扩展，达到开发者想要扩展的目的。
--->
+---
+# 主题列表：juejin, github, smartblue, cyanosis, channing-cyan, fancy, hydrogen, condensed-night-purple, greenwillow, v-green, vue-pro, healer-readable, mk-cute, jzman, geek-black, awesome-green, qklhk-chocolate
 
-# 赏析 Webpack 中 tapable 插件系统（包含设计思想、使用手册和插件系统对比）
+# 贡献主题：https://github.com/xitu/juejin-markdown-themes
+
+# 摘要：tapable 是为了使系统更容易扩展而抽象的库。它要求将程序设计为一套流程，然后开发者可以在任意的流程节点中进行扩展，达到开发者想要扩展的目的。
+
+theme: channing-cyan
+highlight:
+---
+
+# 为什么 Webpack 使用 tapable 插件系统（包含设计思想、使用手册和插件系统对比）
 
 # tapable 设计思想
 
@@ -102,11 +109,11 @@ exampleWithTapable(opts2, hooks => {
 
 在 [enhanced-resolve](https://github.com/webpack/enhanced-resolve) 这个项目中，该项目是 webpack 用于定位一个模块的真实路径的解析器。该解析算法的流程如下图所示（可[参考源码](https://github.com/webpack/enhanced-resolve/blob/60d79f3c93304ce5ecbbe0127aa583d4a73bf1a1/lib/ResolverFactory.js#L281)）。
 
-![](./imgs/enhanced-resolve-pipeline.png)
+![enhanced-resolve-pipeline.png](https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/0288b59d2c0041c193dfc1975b865f9e~tplv-k3u1fbpfcp-watermark.image)
 
 这个流程非常清晰，流程的每一步都被提取为 Hook，并在后面的代码中为各步骤设置默认的 Plugin。比如，`parsed-resolve` 步骤的默认处理逻辑就是 `DescriptionFilePlugin` 插件，并且指明了该步骤的下一步是 `described-resolve` 步骤。
 
-![](./imgs/enhanced-resolve-hook-plugin.png)
+![enhanced-resolve-hook-plugin.png](https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/abd03f2389a943778fed82244b68e47b~tplv-k3u1fbpfcp-watermark.image)
 
 由于 enhanced-resolve 是基于 tapable 设计的可扩展库，所以开发者可以通过 webpack 的配置项 [`webpackConfig.resolve.plugins`](https://webpack.js.org/configuration/resolve/#resolveplugins) 对 Resolver 的各个阶段进行扩展。
 
