@@ -1,10 +1,21 @@
-# 如何用 TypeScript 语言实现一款支持浏览器和 Node.js 的通用 SDK
+---
+# 主题列表：juejin, github, smartblue, cyanosis, channing-cyan, fancy, hydrogen, condensed-night-purple, greenwillow, v-green, vue-pro, healer-readable, mk-cute, jzman, geek-black, awesome-green, qklhk-chocolate
+
+# 贡献主题：https://github.com/xitu/juejin-markdown-themes
+
+# 摘要：本文主要记录实现一款通用 SDK 时遇到的问题，以及解决方案，如果你需要快速创建一个 SDK，那么你可以复制该项目建立你自己的 SDK，并在遇到问题的时候再回头阅读本文。
+
+theme: hydrogen
+highlight:
+---
+
+# 如何实现一款支持浏览器和 Node.js 的通用 SDK
 
 # TL;DR
 
 本文对应的 SDK 项目仓库为 [universal-sdk-by-tsdx](https://github.com/MoonBall/universal-sdk-by-tsdx)。
 
-本文主要记录如何一步步完成该 SDK，如果你需要快速创建一个 SDK，那么你可以复制该项目建立你自己的 SDK，并在遇到问题的时候再回头阅读本文。
+本文主要记录实现一款通用 SDK 时遇到的问题，以及解决方案，如果你需要快速创建一个 SDK，那么你可以复制该项目建立你自己的 SDK，并在遇到问题的时候再回头阅读本文。
 
 如果你更愿意通过阅读代码的方式了解实现原理，那么克隆该项目并阅读源码将非常适合你。在该项目中执行 `git log`，将展示详细的实践步骤，这对理解该 SDK 的迭代过程非常有帮助。
 
@@ -42,11 +53,11 @@ cd universal-sdk-by-tsdx
 
 当把 `src/index.ts` 中的 `'boop'` 字符串的单引号改成双引号时，vscode 并没有报错。
 
-![](./imgs/no-eslint-error.png)
+![no-eslint-error.png](https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/77d0e3d081b247d7a9fc7b75b85a6dba~tplv-k3u1fbpfcp-watermark.image)
 
 需要执行 `yarn lint --write-file`，这个命令将在项目更目录生成 `.eslintrc.js` 文件。重启 vscode，将看到 eslint 提示的报错信息。
 
-![](./imgs/eslint-error.png)
+![eslint-error.png](https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/854dca88016e4e2abd4610e19bcad0c1~tplv-k3u1fbpfcp-watermark.image)
 
 ## 验证 vscode 代码格式化 ✅
 
@@ -136,7 +147,7 @@ if ("development" === process.env.NODE_ENV) {
 
 实际上在本次 [Commit](https://github.com/MoonBall/universal-sdk-by-tsdx/commit/6b97a5af363f94fb185fe039082aaec7ce6af6a6) 后，执行 `yarn build:browser` 并在浏览器中打开 `index.html` 文件，会发现如下报错。
 
-![](./imgs/buffer-is-undefined.png)
+![buffer-is-undefined.png](https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/598420806f5d4234a4402e3adde4bc1c~tplv-k3u1fbpfcp-watermark.image)
 
 这就说明方案二还需要像方案一一样，把所有 Node.js 的内置模块都处理一下，所以方案二是依赖于方案一的。**但方案二在特定场景下还是非常有用的，比如需要在 Node.js 环境使用浏览器环境涉及的功能。**例如，如果想 Node.js 环境使用 DOM 的 API，那么可以根据环境判断是否引入在 Node.js 环境模拟 DOM 操作相关的库（如：[jsdom](https://www.npmjs.com/package/jsdom)）。
 
@@ -194,11 +205,11 @@ SDK 需要表明自身支持的运行环境，最好可以通过配置的方式�
 
 在 `src/test-node-version.ts` 文件中，存在 `nullish-coalescing-operator` 语法和 `exponentiation-operator` 语法。由于 `nullish-coalescing-operator` 在 node@v14 才支持，而 `exponentiation-operator` 在 node@v7 就支持了，所以执行 `yarn build:node` 后可以看到 `nullish-coalescing-operator` 语法被转译了，而 `exponentiation-operator` 语法没有被转译。
 
-![](./imgs/support-node-v10)
+![support-node-v10.png](https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/75dcfbb4e70a44c2bc6e7fb01c92fef6~tplv-k3u1fbpfcp-watermark.image)
 
 如果把[支持的 Node.js 版本改为 `'6'`](https://github.com/MoonBall/universal-sdk-by-tsdx/commit/97487f1b6ccb0bd61b2b2a1dccf7d559d8d12d8f#diff-7eb32cb816db9aefed03469f59ccfcd4985b0a1e98fe5da291b0ec33ff7748d9R22)，那么 `exponentiation-operator` 也会被转译。
 
-![](./imgs/support-node-v6)
+![support-node-v6.png](https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/606e72eeb4a7471aa60c1683a0aad032~tplv-k3u1fbpfcp-watermark.image)
 
 > `babel-preset-env` 把 ES 特性所需的的环境版本配置在 [babel-compat-data/data/plugins.json](https://github.com/babel/babel/blob/main/packages/babel-compat-data/data/plugins.json) 文件中。在 [node.green](https://node.green/) 网站，也可以清晰地看到 ES 特性在 Node.js 环境的支持情况。
 
@@ -236,6 +247,10 @@ SDK 需要表明自身支持的运行环境，最好可以通过配置的方式�
 
 但引用产物代码后，是不是代码执行报错时或调试时就不能定位到 `src/` 中的源码呢？其实并不会，即使引用的是 `dist/` 中打包的产物，`yarn test` 仍会自动使用 sourcemap 文件。当 `console.log()` 执行或运行出错时都会指向真实的 `src/` 文件。所以这并不是引用产物代码的缺点，但它有另一个更严重的缺点：**测试覆盖率不准**。所以如果 SDK 需要测试覆盖率报告，那么就不能引用构建后的产物代码进行测试。
 
+下图是在测试代码中引用产物代码后的运行截图，可以看到报错和 log 都映射到源码上了。
+
+![yarn-test-error-for-dist.png](https://p1-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/1b32a29fcc854822a0508bcae46773d4~tplv-k3u1fbpfcp-watermark.image)
+
 ## 浏览器环境的 Demo
 
 前面提到如果使用方引用的是浏览器环境的 cjs 或 esm 产物，那么 SDK 使用的 Node.js 内置模块需要由使用方负责打包。但这个场景是单元测试没办法覆盖的（因为单测运行在 Node.js 环境），所以需要建立 Demo 验证 SDK 在该场景下的可用性。
@@ -248,7 +263,7 @@ SDK 需要表明自身支持的运行环境，最好可以通过配置的方式�
 
 ## 总结
 
-本文记录了搭建通用 SDK 的心路历程，总结了一款通用 SDK 需要提供的功能，并给出解决方案。
+本文记录了搭建通用 SDK 的心路历程，总结了实现一款通用 SDK 遇到的问题，并给出解决方案。
 
 如果你也有类似需求，那么直接复制[该项目](https://github.com/MoonBall/universal-sdk-by-tsdx)，就能开始写 SDK 了。
 
