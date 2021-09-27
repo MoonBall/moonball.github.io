@@ -1,15 +1,30 @@
+<!--
+  摘要：通过本文将了解：dva 的定位、dva 的创新点及解决的问题、dva 的用法、dva 的源码分析，了解插件系统实现方式。
+-->
+
+# React 数据管理之 dva
+
+# TL;DR
+
+通过本文将了解：
+
+1. dva 的定位
+2. dva 的创新点及解决的问题
+3. dva 的用法
+4. dva 的源码分析，了解插件系统实现方式
+
 # dva 的定位
 
-首先 dva 的定位是**基于 redux 和 redux-saga 的数据流管理方案**。然后 dva 还提供了一些简化的 API 和插件（例如：集成 react-router、redux-devtool，提供 loading 插件），所以也可以将其理解为应用框架。
+首先 dva 的定位是**基于 redux 和 redux-saga 的数据流管理方案**。其次 dva 还提供了一些简化的 API 和易用的插件（例如：集成 react-router、redux-devtool，提供 loading 插件），所以也可以将其理解为小型的应用框架。
 
 ## dva 的创新点及解决的问题
 
 ### model 概念提出
 
-dva 最大的创新点是 model 概念的提出。与之前的 Redux 数据管理相比较，dva 的 model 提出后解决了以下问题：
+dva 最大的创新点是 model 概念的提出。与之前的 Redux 数据管理相比较，dva 提出 model 后解决了以下问题：
 
-1. 之前的 Redux 应用中不仅需要先声明 ActionType，还需要在 reducer 对 ActionType 进行判断，引入 model 便没有这样的逻辑了，[dva 在内部对 `model.reducers` 进行了处理](https://github.com/dvajs/dva/blob/3eaee309ede9cf1e255326150ee2210bd04c1abf/packages/dva-core/src/handleActions.js#L22-L26)。
-2. 数据和操作数据的行为（包括异步逻辑）均置于同一个 model 文件中。
+1. 之前的 Redux 应用中不仅需要先声明 ActionType，还需要在 reducer 对 ActionType 进行判断。而 dva 提出 model 概念后便没有这样的逻辑了，[dva 在内部对 `model.reducers` 进行了处理](https://github.com/dvajs/dva/blob/3eaee309ede9cf1e255326150ee2210bd04c1abf/packages/dva-core/src/handleActions.js#L22-L26)。
+2. 将数据和操作数据的行为（包括异步逻辑）置于同一个文件中。
 3. 通过 redux-saga 实现异步逻辑处理，提出 effects 概念，可以通过 dispatch action 的方式执行 effect 函数。dva 中每个 effect 都是一个 [saga](https://redux-saga.js.org/docs/introduction/GettingStarted)，尽管个人认为 redux-saga 并不好用，但是 dva 还是做到了和 redux-saga 高度集成和简化。例如：每个 effect 可以通过数据的第二个值指定 saga 的类型，在 dispatch action 执行一个 effect 时其返回值是 promise。
 4. 可以通过实现返回 model 的函数快速复用一类 model（如：dva-loading model）。
 
@@ -88,6 +103,8 @@ app.start(document.getElementById("root"))
 3. [connect 起来](https://dvajs.com/guide/getting-started.html#connect-%E8%B5%B7%E6%9D%A5)
 
 # dva 的源码分析
+
+> 个人愚见，dva 的源码还是比较脏的，代码实现相当灵活，不建议细究。例如：[unmodel 方法](https://github.com/dvajs/dva/blob/master/packages/dva-core/src/index.js#L101-L102)中修改函数的实参，而该实参 `reducers` 又是个全局变量，在下一个函数 `createReducer()` 中使用，。所以整体来看，代码比较晦涩。
 
 dva 分为 4 个 packages：
 
